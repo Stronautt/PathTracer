@@ -1,6 +1,8 @@
 # PathTracer: 3D Scene Rendering Application
 PathTracer is a robust and high-performance 3D rendering application, capable of rendering intricate scenes containing basic geometric shapes, complex mathematical 3D object functions (like mandelbulb, julia fract, torus and mebius strip), and OBJ files with 3D models. The application generates near real-world images, based on the Path Tracing algorithm.
 
+[![Demo Video](https://img.youtube.com/vi/sgGH-kngiGQ/0.jpg)](https://youtu.be/sgGH-kngiGQ)
+
 It leverages the computing power of GPU using the OpenCL runtime, thus ensuring quick and efficient rendering.
 
 ### Requirements
