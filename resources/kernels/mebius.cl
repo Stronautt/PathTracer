@@ -21,18 +21,18 @@ static bool inside(float3 pt, t_obj obj)
 {
 	float	t = atan2(pt.y, pt.x);
 	float	s = t;
-	float	sin[2] = {sin(t), sin(t / 2.0F)};
-	float	cos[2] = {cos(t), cos(t / 2.0F)};
+	float	sin_v[2] = {sin(t), sin(t / 2.0F)};
+	float	cos_v[2] = {cos(t), cos(t / 2.0F)};
 
-	if (sin[1])
-		s = pt.z / sin[1];
-	else if (cos[0] && cos[1])
-			s = (pt.x / cos[0] - obj.rad) / cos[1];
-	else if (sin[0] && cos[1])
-		s = (pt.y / sin[0] - obj.rad) / cos[1];
-	pt.x -= (obj.rad + s * cos[1]) * cos[0];
-	pt.y -= (obj.rad + s * cos[1]) * sin[0];
-	pt.z -= s * sin[1];
+	if (sin_v[1])
+		s = pt.z / sin_v[1];
+	else if (cos_v[0] && cos_v[1])
+			s = (pt.x / cos_v[0] - obj.rad) / cos_v[1];
+	else if (sin_v[0] && cos_v[1])
+		s = (pt.y / sin_v[0] - obj.rad) / cos_v[1];
+	pt.x -= (obj.rad + s * cos_v[1]) * cos_v[0];
+	pt.y -= (obj.rad + s * cos_v[1]) * sin_v[0];
+	pt.z -= s * sin_v[1];
 
 	if (dblsgn(dot(pt, pt)))
 		return false;

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "render.h.cl"
+#include "include/render.h.cl"
 #include "resources/kernels/julia.cl"
 #include "resources/kernels/mandelbulb.cl"
 #include "resources/kernels/mebius.cl"

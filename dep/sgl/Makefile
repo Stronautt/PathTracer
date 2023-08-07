@@ -3,10 +3,10 @@
 #                                                                              #
 #    Makefile                                                                  #
 #                                                                              #
-#    By: stronautt                                                             #
+#    By: phrytsenko                                                            #
 #                                                                              #
-#    Created: 2023/08/07 14:53:53 by stronautt                                 #
-#    Updated: 2023/08/07 16:15:14 by stronautt                                 #
+#    Created: 2019/01/05 14:53:53 by cozzmonavt                                #
+#    Updated: 2019/01/08 16:15:14 by phrytsenko                                #
 #                                                                              #
 # **************************************************************************** #
 
