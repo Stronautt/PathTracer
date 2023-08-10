@@ -51,7 +51,7 @@ t_obj		*dlist_to_obj_array(t_dlist *dlst, uint count)
 	return (arr);
 }
 
-void		parse_all_kernels(t_env *env)
+void		*parse_all_kernels(t_env *env)
 {
 	ft_printf("OpenCL kernels parsing started... ");
 	cl_parse_kernel(&env->cl, &env->cam->kl,
@@ -68,6 +68,7 @@ void		parse_all_kernels(t_env *env)
 	env->load_progress += 0.1;
 	ft_printf("{green}DONE\n{nc}");
 	env->flags.kernels_parsed = 1;
+	return (void*)env;
 }
 
 void		add_figure(t_scene *scene, t_obj *new)

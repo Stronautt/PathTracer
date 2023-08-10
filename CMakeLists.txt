@@ -3,11 +3,9 @@ cmake_minimum_required(VERSION 3.5.2)
 project(PathTracer LANGUAGES C)
 
 find_package(OpenCL REQUIRED)
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-find_package(SDL2_image REQUIRED)
+find_package(Threads REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Werror")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Wno-cast-function-type -Werror")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3")
 
@@ -66,5 +64,5 @@ add_executable(${PROJECT_NAME}
     src/design/design_19.c
     src/design/design_20.c
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenCL::OpenCL SDL2::SDL2 SDL2_ttf SDL2_image ft sgl)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenCL::OpenCL ft sgl m Threads::Threads)
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_HEADERS_DIR})

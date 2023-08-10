@@ -55,25 +55,28 @@ int			get_primitive_end(char *str)
 
 char		*remove_whitespaces(char *string)
 {
+	char	*src;
 	char	*result;
 	int		quote;
 	int		i;
 
-	result = (char *)ft_memalloc(ft_strlen(string) + 1);
+	src = string;
+	result = (char *)ft_memalloc(ft_strlen(src) + 1);
 	quote = 0;
 	i = 0;
-	while (*string)
+	while (*src)
 	{
-		if (*string == '"')
+		if (*src == '"')
 			quote ^= 1;
-		if ((*string != ' ' && *string != '\t' && *string != '\n') || quote)
+		if ((*src != ' ' && *src != '\t' && *src != '\n') || quote)
 		{
-			result[i] = *string;
+			result[i] = *src;
 			i++;
 		}
-		string++;
+		src++;
 	}
 	result[i] = 0;
+	free(string);
 	return (result);
 }
 
@@ -106,21 +109,18 @@ char		*get_file_content(char *name)
 	return (result);
 }
 
-void		read_scene(t_parser_thread_info *d)
+void		*read_scene(t_parser_thread_info *d)
 {
-	char	*raw;
-	char	*no_whitespaces;
-	char	*no_whitespaces_start;
+	char	*content;
+	char	*content_start;
 
 	ft_printf("Scene {yellow}'%s'{nc} parsing started...\n", d->file_name);
-	raw = get_file_content(d->file_name);
 	d->env->load_progress += 0.2;
-	no_whitespaces = remove_whitespaces(raw);
-	no_whitespaces_start = no_whitespaces;
-	free(raw);
-	parse_scene(&no_whitespaces, d->env);
+	content = remove_whitespaces(get_file_content(d->file_name));
+	content_start = content;
+	parse_scene(&content, d->env);
 	d->env->load_progress += 0.2;
-	free(no_whitespaces_start);
+	free(content_start);
 	d->env->scene.objs_c = ft_dlstsize(d->env->scene.objs_l);
 	d->env->scene.objs_h = dlist_to_obj_array(d->env->scene.objs_l,
 											d->env->scene.objs_c);
@@ -133,4 +133,5 @@ void		read_scene(t_parser_thread_info *d)
 	ft_printf("Scene file parsing... {green}DONE{nc}\n");
 	d->env->load_progress += 0.2;
 	d->env->flags.scene_parsed = 1;
+	return (void*)d;
 }

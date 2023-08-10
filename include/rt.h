@@ -23,6 +23,7 @@
 # ifdef __APPLE__
 #  include <OpenCL/opencl.h>
 # else
+#  define CL_TARGET_OPENCL_VERSION 120
 #  include <CL/cl.h>
 #  include <fcntl.h>
 # endif
@@ -236,7 +237,7 @@ char			*parse_text_as(char *string, int type, void *place_to_save);
 **				↓↓↓↓↓↓↓↓↓
 */
 
-void			read_scene(t_parser_thread_info *d);
+void			*read_scene(t_parser_thread_info *d);
 
 void			parse_source(char **string, t_env *env);
 
@@ -396,7 +397,7 @@ const char		**get_obj_type(long id, t_uchar clear, long *size);
 
 t_obj			*dlist_to_obj_array(t_dlist *dlst, uint count);
 
-void			parse_all_kernels(t_env *env);
+void			*parse_all_kernels(t_env *env);
 
 void			add_figure(t_scene *scene, t_obj *new);
 

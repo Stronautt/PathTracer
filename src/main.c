@@ -12,6 +12,8 @@
 
 #include "rt.h"
 
+#include <stdbool.h>
+
 int		main(int ac, char **av)
 {
 	t_env	env;

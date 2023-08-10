@@ -100,9 +100,12 @@ void				obj_info_mouse_move_handler(int x, int y, t_env *e)
 	else if (x >= e->sel_obj.pos.x && x <= e->sel_obj.pos.x + e->sel_obj.pos.w
 		&& y >= e->sel_obj.pos.y && y <= e->sel_obj.pos.y + 10)
 		!move ? ERR("Cursor didn't loaded") : SDL_SetCursor(move);
-	e->sel_obj.drag ? (e->sel_obj.pos.x = x)
-					&& (e->sel_obj.pos.y = y) : 0;
-	e->sel_obj.drag ? e->sel_obj.pos.x -= e->sel_obj.drag : 0;
+	if (e->sel_obj.drag)
+	{
+		e->sel_obj.pos.x = x;
+		e->sel_obj.pos.y = y;
+		e->sel_obj.pos.x -= e->sel_obj.drag;
+	}
 }
 
 uint				find_obj(t_env *env)

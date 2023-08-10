@@ -17,10 +17,13 @@ void	move(t_env *env, char state, t_point dir)
 	float		speed;
 	cl_float3	d;
 
+	(void)state;
 	speed = env->move_speed * (env->flags.sprint + 1) * env->time.delta;
 	d = dir_vector(dir, env);
-	env->cam->pos = state > 0 ? vec_add(env->cam->pos, vec_mult_num(d, speed))
-							: vec_sub(env->cam->pos, vec_mult_num(d, speed));
+	if (state == 0)
+		env->cam->pos = vec_sub(env->cam->pos, vec_mult_num(d, speed));
+	else
+		env->cam->pos = vec_add(env->cam->pos, vec_mult_num(d, speed));
 	init_scene(env);
 }
 
@@ -41,11 +44,11 @@ void	movement_keys(SDL_Scancode key, t_env *env, char state)
 void	handle_movement(t_env *env)
 {
 	env->flags.move_f ? move(env, 1, (t_point){0, 0, 1}) : 0;
-	env->flags.move_b ? move(env, -1, (t_point){0, 0, 1}) : 0;
-	env->flags.sidle_l ? move(env, -1, (t_point){1, 0, 0}) : 0;
+	env->flags.move_b ? move(env, 0, (t_point){0, 0, 1}) : 0;
+	env->flags.sidle_l ? move(env, 0, (t_point){1, 0, 0}) : 0;
 	env->flags.sidle_r ? move(env, 1, (t_point){1, 0, 0}) : 0;
 	env->flags.move_u ? move(env, 1, (t_point){0, 1, 0}) : 0;
-	env->flags.move_d ? move(env, -1, (t_point){0, 1, 0}) : 0;
+	env->flags.move_d ? move(env, 0, (t_point){0, 1, 0}) : 0;
 }
 
 void	view_mousemove(t_env *env)
