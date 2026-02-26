@@ -1,0 +1,59 @@
+{
+  "camera": {
+    "position": [0.0, 3.0, -8.0],
+    "rotation": [-10.0, 0.0, 0.0],
+    "fov": 60.0,
+    "exposure": 1.0
+  },
+  "figures": [
+    {
+      "type": "sphere",
+      "position": [-50.0, 60.0, -30.0],
+      "radius": 15.0,
+      "material": {
+        "base_color": [1.0, 0.95, 0.9],
+        "emission": [1.0, 0.95, 0.9],
+        "emission_strength": 10.0
+      }
+    },
+    {
+      "type": "plane",
+      "position": [0.0, 0.0, 0.0],
+      "normal": [0.0, 1.0, 0.0],
+      "material": {
+        "base_color": [0.7, 0.7, 0.7],
+        "roughness": 0.8
+      }
+    },
+    {
+      "type": "mandelbulb",
+      "position": [-3.0, 2.0, 0.0],
+      "radius": 1.5,
+      "material": {
+        "base_color": [0.9, 0.4, 0.1],
+        "roughness": 0.6
+      }
+    },
+    {
+      "type": "julia",
+      "position": [3.0, 2.0, 0.0],
+      "radius": 1.5,
+      "rotation": [-0.2, 0.6, -0.2],
+      "radius2": 0.4,
+      "material": {
+        "base_color": [0.2, 0.5, 0.9],
+        "roughness": 0.5
+      }
+    },
+    {
+      "type": "sphere",
+      "position": [0.0, 2.0, 4.0],
+      "radius": 2.0,
+      "material": {
+        "base_color": [0.95, 0.95, 0.95],
+        "metallic": 1.0,
+        "roughness": 0.02
+      }
+    }
+  ]
+}

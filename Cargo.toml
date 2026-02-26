@@ -1,0 +1,39 @@
+[package]
+name = "path-tracer"
+version = "2.0.0"
+edition = "2024"
+description = "GPU-accelerated PBR path tracer using wgpu/WebGPU"
+license = "MIT"
+
+[dependencies]
+# GPU compute
+wgpu = "23"
+# Windowing
+winit = "0.30"
+# GUI
+egui = "0.30"
+egui-wgpu = "0.30"
+egui-winit = "0.30"
+# Scene parsing
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# OBJ loading
+tobj = { version = "4", features = ["async"] }
+# Image loading
+image = "0.25"
+# Math
+glam = { version = "0.29", features = ["bytemuck"] }
+# GPU struct mapping
+bytemuck = { version = "1", features = ["derive"] }
+# Async runtime (for wgpu init)
+pollster = "0.4"
+# Logging
+env_logger = "0.11"
+log = "0.4"
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"

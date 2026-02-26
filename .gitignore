@@ -1,6 +1,13 @@
+# C build artifacts (legacy)
 *.o
 *.a
 obj
 RT
-screenshot*.ppm
 build*/
+
+# Rust build artifacts
+/target
+
+# Screenshots
+screenshot*.ppm
+screenshot*.png

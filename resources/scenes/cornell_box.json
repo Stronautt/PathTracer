@@ -1,0 +1,86 @@
+{
+  "camera": {
+    "position": [0.0, 5.0, -12.0],
+    "rotation": [-10.0, 0.0, 0.0],
+    "fov": 50.0,
+    "exposure": 1.2
+  },
+  "figures": [
+    {
+      "type": "sphere",
+      "position": [0.0, 15.0, 0.0],
+      "radius": 3.0,
+      "material": {
+        "base_color": [1.0, 0.98, 0.95],
+        "emission": [1.0, 0.98, 0.95],
+        "emission_strength": 12.0
+      }
+    },
+    {
+      "type": "plane",
+      "position": [0.0, 0.0, 0.0],
+      "normal": [0.0, 1.0, 0.0],
+      "material": {
+        "base_color": [0.9, 0.9, 0.9],
+        "roughness": 0.95
+      }
+    },
+    {
+      "type": "plane",
+      "position": [0.0, 10.0, 0.0],
+      "normal": [0.0, -1.0, 0.0],
+      "material": {
+        "base_color": [0.9, 0.9, 0.9],
+        "roughness": 0.95
+      }
+    },
+    {
+      "type": "plane",
+      "position": [0.0, 0.0, 8.0],
+      "normal": [0.0, 0.0, -1.0],
+      "material": {
+        "base_color": [0.9, 0.9, 0.9],
+        "roughness": 0.95
+      }
+    },
+    {
+      "type": "plane",
+      "position": [-6.0, 0.0, 0.0],
+      "normal": [1.0, 0.0, 0.0],
+      "material": {
+        "base_color": [0.8, 0.1, 0.1],
+        "roughness": 0.95
+      }
+    },
+    {
+      "type": "plane",
+      "position": [6.0, 0.0, 0.0],
+      "normal": [-1.0, 0.0, 0.0],
+      "material": {
+        "base_color": [0.1, 0.8, 0.1],
+        "roughness": 0.95
+      }
+    },
+    {
+      "type": "sphere",
+      "position": [-2.5, 1.5, 2.0],
+      "radius": 1.5,
+      "material": {
+        "base_color": [1.0, 1.0, 1.0],
+        "transmission": 1.0,
+        "ior": 1.5,
+        "roughness": 0.0
+      }
+    },
+    {
+      "type": "sphere",
+      "position": [2.5, 1.5, 0.0],
+      "radius": 1.5,
+      "material": {
+        "base_color": [0.95, 0.93, 0.88],
+        "metallic": 1.0,
+        "roughness": 0.05
+      }
+    }
+  ]
+}
