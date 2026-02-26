@@ -1,3 +1,6 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 

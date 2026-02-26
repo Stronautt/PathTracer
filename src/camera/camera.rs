@@ -1,5 +1,10 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use bytemuck::{Pod, Zeroable};
 use glam::{Quat, Vec3};
+
+use crate::constants::{DEFAULT_CAMERA_POSITION, DEFAULT_EXPOSURE, DEFAULT_FOV};
 
 pub struct Camera {
     pub position: Vec3,
@@ -31,7 +36,7 @@ impl Camera {
 
     pub fn basis_vectors(&self) -> (Vec3, Vec3, Vec3) {
         let rot = self.orientation();
-        let forward = rot * Vec3::NEG_Z;
+        let forward = rot * Vec3::Z;
         let right = rot * Vec3::X;
         let up = rot * Vec3::Y;
         (right, up, forward)
@@ -68,11 +73,11 @@ impl Camera {
 impl Default for Camera {
     fn default() -> Self {
         Self {
-            position: Vec3::new(0.0, 2.0, -10.0),
+            position: Vec3::from(DEFAULT_CAMERA_POSITION),
             yaw: 0.0,
             pitch: 0.0,
-            fov: 60.0,
-            exposure: 1.0,
+            fov: DEFAULT_FOV,
+            exposure: DEFAULT_EXPOSURE,
         }
     }
 }

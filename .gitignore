@@ -1,13 +1,12 @@
-# C build artifacts (legacy)
-*.o
-*.a
-obj
-RT
-build*/
-
 # Rust build artifacts
 /target
+
+# Claude Code
+.claude
 
 # Screenshots
 screenshot*.ppm
 screenshot*.png
+
+# Runtime-generated scene files
+scene_saved.yaml

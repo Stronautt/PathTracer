@@ -1,0 +1,173 @@
+camera:
+  position: [5.3, 5.0, -2.0]
+  rotation: [34.4, 0.0, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: torus
+  position: [3.7, 0.0, 3.7]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [7.1, 0.0, 5.3]
+  normal: [-0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [3.6, 0.0, 4.5]
+  normal: [1.0, 0.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [3.4, 0.0, 5.3]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [4.5, 0.0, 3.7]
+  normal: [0.0, 0.0, 1.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [5.3, 0.0, 3.7]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [6.1, 0.0, 3.7]
+  normal: [0.0, 0.0, 1.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [6.9, 0.0, 3.7]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [7.2, 0.0, 4.5]
+  normal: [1.0, 0.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [3.6, 0.0, 6.1]
+  normal: [1.0, 0.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [3.7, 0.0, 6.9]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [4.5, 0.0, 7.0]
+  normal: [0.0, 0.0, 1.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [5.3, 0.0, 7.0]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [6.1, 0.0, 7.0]
+  normal: [0.0, 0.0, 1.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [6.9, 0.0, 6.9]
+  normal: [0.0, 1.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: torus
+  position: [7.1, 0.0, 6.1]
+  normal: [1.0, 0.0, 0.0]
+  radius: 0.16
+  radius2: 0.6
+  material:
+    base_color: [1.0, 0.84, 0.45]
+    metallic: 1.0
+    roughness: 0.05
+- type: plane
+  position: [0.0, -2.0, 0.0]
+  normal: [0.0, 1.0, 0.0]
+  material:
+    base_color: [0.9, 0.67, 0.44]
+    roughness: 0.8
+- type: disc
+  position: [5.0, 10.0, 3.0]
+  normal: [0.0, 1.0, 0.0]
+  radius: 3.0
+  material:
+    base_color: [1.0, 1.0, 1.0]
+    roughness: 0.9
+    emission: [1.0, 1.0, 1.0]
+    emission_strength: 2.0
+- type: plane
+  position: [0.0, 11.0, 0.0]
+  normal: [0.0, 1.0, 0.0]
+  material:
+    base_color: [0.9, 0.67, 0.44]
+    roughness: 0.9
+    emission: [0.9, 0.67, 0.44]
+    emission_strength: 0.03

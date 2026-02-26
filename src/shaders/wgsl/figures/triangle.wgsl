@@ -43,7 +43,11 @@ fn intersect_triangle(ray: Ray, fig: Figure) -> HitRecord {
     if dot(hit.normal, ray.direction) > 0.0 {
         hit.normal = -hit.normal;
     }
-    hit.uv = vec2f(u, v);
+    // Interpolate per-vertex UVs packed as half-floats in the padding fields.
+    let t_uv0 = unpack2x16float(bitcast<u32>(fig._pad2));
+    let t_uv1 = unpack2x16float(bitcast<u32>(fig._pad3));
+    let t_uv2 = unpack2x16float(bitcast<u32>(fig._pad4));
+    hit.uv = (1.0 - u - v) * t_uv0 + u * t_uv1 + v * t_uv2;
 
     return hit;
 }

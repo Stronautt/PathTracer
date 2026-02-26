@@ -1,8 +1,12 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #![allow(dead_code)]
 
 mod accel;
 mod app;
 mod camera;
+mod constants;
 mod gpu;
 mod input;
 mod io;

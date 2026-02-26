@@ -1,6 +1,8 @@
-use crate::gpu::buffers::dispatch_size;
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
 
-pub const WORKGROUP_SIZE: u32 = 8;
+use crate::constants::WORKGROUP_SIZE;
+use crate::gpu::buffers::dispatch_size;
 
 pub fn dispatch_path_trace(
     encoder: &mut wgpu::CommandEncoder,

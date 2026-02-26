@@ -10,12 +10,12 @@ fn quat_mult(a: vec4f, b: vec4f) -> vec4f {
     );
 }
 
-fn sdf_julia(p: vec3f, c: vec4f) -> f32 {
+fn sdf_julia(p: vec3f, c: vec4f, max_iter: i32) -> f32 {
     var z = vec4f(p, 0.0);
     var dz = vec4f(1.0, 0.0, 0.0, 0.0);
     var r2 = dot(z, z);
 
-    for (var i = 0; i < 14; i++) {
+    for (var i = 0; i < max_iter; i++) {
         if r2 > 16.0 {
             break;
         }
@@ -38,6 +38,7 @@ fn intersect_julia(ray: Ray, fig: Figure) -> HitRecord {
 
     // Julia constant (stored in rotation.xyz and radius2)
     let c = vec4f(fig.rotation, fig.radius2);
+    let max_iter = i32(fig.v0.y);
 
     // Bounding sphere check
     let oc = ray.origin - fig.position;
@@ -58,12 +59,12 @@ fn intersect_julia(ray: Ray, fig: Figure) -> HitRecord {
     for (var i = 0; i < 256; i++) {
         let p = ray.origin + ray.direction * t - fig.position;
         let scaled_p = p / fig.radius;
-        let d = sdf_julia(scaled_p, c) * fig.radius;
+        let d = sdf_julia(scaled_p, c, max_iter) * fig.radius;
 
         if d < 0.0 && prev_d > 0.0 {
             t -= prev_d * (omega - 1.0);
             let p2 = ray.origin + ray.direction * t - fig.position;
-            let d2 = sdf_julia(p2 / fig.radius, c) * fig.radius;
+            let d2 = sdf_julia(p2 / fig.radius, c, max_iter) * fig.radius;
             t += d2;
             prev_d = d2;
             continue;
@@ -78,10 +79,10 @@ fn intersect_julia(ray: Ray, fig: Figure) -> HitRecord {
             let e = vec2f(1.0, -1.0) * 0.5773 * EPSILON * 2.0;
             let local = (hit.position - fig.position) / fig.radius;
             hit.normal = normalize(
-                e.xyy * sdf_julia(local + e.xyy, c) +
-                e.yyx * sdf_julia(local + e.yyx, c) +
-                e.yxy * sdf_julia(local + e.yxy, c) +
-                e.xxx * sdf_julia(local + e.xxx, c)
+                e.xyy * sdf_julia(local + e.xyy, c, max_iter) +
+                e.yyx * sdf_julia(local + e.yyx, c, max_iter) +
+                e.yxy * sdf_julia(local + e.yxy, c, max_iter) +
+                e.xxx * sdf_julia(local + e.xxx, c, max_iter)
             );
 
             hit.uv = vec2f(0.0);

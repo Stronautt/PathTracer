@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g., v2.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: path-tracer
+
+jobs:
+  build:
+    name: Build — ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-13
+            archive: tar.gz
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libvulkan-dev \
+            pkg-config \
+            cmake
+
+      - name: Cache Cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ matrix.target }}-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Strip binary (Linux)
+        if: runner.os == 'Linux'
+        run: strip target/release/${{ env.BINARY_NAME }}
+
+      - name: Strip binary (macOS)
+        if: runner.os == 'macOS'
+        run: strip -x target/release/${{ env.BINARY_NAME }}
+
+      - name: Prepare archive directory
+        shell: bash
+        run: |
+          ARCHIVE_NAME="${{ env.BINARY_NAME }}-${{ inputs.tag }}-${{ matrix.target }}"
+          mkdir -p "${ARCHIVE_NAME}"
+
+          # Copy binary
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/release/${{ env.BINARY_NAME }}.exe" "${ARCHIVE_NAME}/"
+          else
+            cp "target/release/${{ env.BINARY_NAME }}" "${ARCHIVE_NAME}/"
+          fi
+
+          # Copy resources (exclude legacy directory)
+          cp -r resources/ "${ARCHIVE_NAME}/resources/"
+
+          # Copy documentation
+          cp README.md "${ARCHIVE_NAME}/"
+          [ -f LICENSE ] && cp LICENSE "${ARCHIVE_NAME}/"
+
+          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
+
+      - name: Create tar.gz archive (Linux/macOS)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          tar -czf "${{ env.ARCHIVE_NAME }}.tar.gz" "${{ env.ARCHIVE_NAME }}"
+          echo "ASSET=${{ env.ARCHIVE_NAME }}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Create zip archive (Windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "${{ env.ARCHIVE_NAME }}" -DestinationPath "${{ env.ARCHIVE_NAME }}.zip" -CompressionLevel Optimal
+          echo "ASSET=${{ env.ARCHIVE_NAME }}.zip" >> $env:GITHUB_ENV
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: ${{ env.ASSET }}
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lhR artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: PathTracer ${{ inputs.tag }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: artifacts/*

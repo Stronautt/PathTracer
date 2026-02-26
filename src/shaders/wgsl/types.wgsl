@@ -23,9 +23,9 @@ struct Figure {
     position: vec3f,
     height: f32,
     normal: vec3f,
-    _pad0: f32,
+    csg_op: u32,    // 0=union (normal), 1=subtraction (negative)
     rotation: vec3f,
-    _pad1: f32,
+    texture_scale: f32,
     v0: vec3f,
     _pad2: f32,
     v1: vec3f,

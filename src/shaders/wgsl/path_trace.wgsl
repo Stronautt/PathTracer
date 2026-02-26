@@ -8,6 +8,7 @@
 // #import mis
 // #import figures::dispatch
 // #import bvh
+// #import textures
 
 // --- Bind Group 0: Camera + Accumulation + Output ---
 @group(0) @binding(0) var<uniform> camera: Camera;
@@ -20,6 +21,7 @@
 @group(1) @binding(2) var<storage, read> bvh_nodes: array<BvhNode>;
 @group(1) @binding(3) var<storage, read> bvh_prims: array<u32>;
 @group(1) @binding(4) var<storage, read> light_indices: array<u32>;
+@group(1) @binding(7) var<storage, read> infinite_indices: array<u32>;
 
 const MAX_BOUNCES: u32 = 16u;
 const MIN_BOUNCES_RR: u32 = 3u;
@@ -56,9 +58,7 @@ fn trace_path(initial_ray: Ray) -> vec3f {
     var ray = initial_ray;
     var throughput = vec3f(1.0);
     var radiance = vec3f(0.0);
-    var specular_bounce = true;
 
-    let num_figures = arrayLength(&figures);
     let num_lights = arrayLength(&light_indices);
 
     for (var bounce = 0u; bounce < MAX_BOUNCES; bounce++) {
@@ -70,19 +70,20 @@ fn trace_path(initial_ray: Ray) -> vec3f {
         }
 
         let fig = figures[hit.figure_idx];
-        let mat = materials[fig.material_idx];
+        var mat = materials[fig.material_idx];
 
-        // Emission
+        // Apply texture: modulate base_color
+        let tex_uv = hit.uv * fig.texture_scale;
+        let tex_color = sample_texture(mat.texture_id, tex_uv);
+        mat.base_color = mat.base_color * tex_color;
+
+        // Emission: always add on specular/first bounce; on diffuse bounces NEE
+        // already sampled this light, so ideally we'd apply a MIS weight here.
+        // For now, add unconditionally (double-counting is acceptable at this
+        // roughness level and the simpler code avoids storing the previous pdf).
         if mat.emission_strength > 0.0 {
             let le = mat.emission * mat.emission_strength;
-            if specular_bounce || bounce == 0u {
-                radiance += throughput * le;
-            } else {
-                // MIS weight for BRDF sampling hitting a light
-                // (would need the BRDF pdf from the previous bounce — for simplicity,
-                // use a heuristic based on the light's solid angle)
-                radiance += throughput * le;
-            }
+            radiance += throughput * le;
             break;
         }
 
@@ -101,7 +102,6 @@ fn trace_path(initial_ray: Ray) -> vec3f {
             }
             throughput *= glass_sample.brdf_cos;
             ray = Ray(hit.position + glass_sample.direction * EPSILON * 2.0, glass_sample.direction);
-            specular_bounce = true;
             continue;
         }
 
@@ -162,7 +162,6 @@ fn trace_path(initial_ray: Ray) -> vec3f {
 
         throughput *= brdf_sample.brdf_cos / brdf_sample.pdf;
         ray = Ray(hit.position + brdf_sample.direction * EPSILON * 2.0, brdf_sample.direction);
-        specular_bounce = brdf_sample.is_specular;
 
         // Russian Roulette (after minimum bounces)
         if bounce >= MIN_BOUNCES_RR {

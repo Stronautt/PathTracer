@@ -1,11 +1,14 @@
 // Post-processing compute shader with corrected effects.
 // Reads from accumulation buffer, writes to output texture.
+// Supports chaining multiple effects in user-defined order.
 
 struct PostParams {
-    effect: u32,
     width: u32,
     height: u32,
+    effect_count: u32,
     _pad: u32,
+    effects_0_3: vec4u,
+    effects_4_7: vec4u,
 }
 
 @group(0) @binding(0) var<uniform> params: PostParams;
@@ -33,6 +36,51 @@ fn read_pixel_clamped(x: i32, y: i32) -> vec3f {
     return read_pixel(vec2u(u32(cx), u32(cy)));
 }
 
+fn get_effect_id(i: u32) -> u32 {
+    if i < 4u {
+        return params.effects_0_3[i];
+    }
+    return params.effects_4_7[i - 4u];
+}
+
+fn apply_single_effect(color: vec3f, pixel: vec2u, effect: u32) -> vec3f {
+    switch effect {
+        case EFFECT_NEGATIVE: {
+            return vec3f(1.0) - color;
+        }
+        case EFFECT_SEPIA: {
+            let r = dot(color, vec3f(0.393, 0.769, 0.189));
+            let g = dot(color, vec3f(0.349, 0.686, 0.168));
+            let b = dot(color, vec3f(0.272, 0.534, 0.131));
+            return clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0));
+        }
+        case EFFECT_GRAYSCALE: {
+            let lum = dot(color, vec3f(0.2126, 0.7152, 0.0722));
+            return vec3f(lum);
+        }
+        case EFFECT_FXAA: {
+            // Spatial effects always read from the original accumulation buffer.
+            return apply_fxaa(pixel);
+        }
+        case EFFECT_OIL_PAINTING: {
+            return apply_oil_painting(pixel);
+        }
+        case EFFECT_BW: {
+            let lum = dot(color, vec3f(0.2126, 0.7152, 0.0722));
+            return select(vec3f(0.0), vec3f(1.0), lum > 0.5);
+        }
+        case EFFECT_COMIC: {
+            return apply_comic(pixel, color);
+        }
+        case EFFECT_CASTING: {
+            return apply_casting(pixel);
+        }
+        default: {
+            return color;
+        }
+    }
+}
+
 @compute @workgroup_size(8, 8)
 fn main(@builtin(global_invocation_id) gid: vec3u) {
     let pixel = gid.xy;
@@ -40,40 +88,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
         return;
     }
 
-    let color = read_pixel(pixel);
-    var result = color;
-
-    switch params.effect {
-        case EFFECT_NEGATIVE: {
-            result = vec3f(1.0) - color;
-        }
-        case EFFECT_SEPIA: {
-            let r = dot(color, vec3f(0.393, 0.769, 0.189));
-            let g = dot(color, vec3f(0.349, 0.686, 0.168));
-            let b = dot(color, vec3f(0.272, 0.534, 0.131));
-            result = clamp(vec3f(r, g, b), vec3f(0.0), vec3f(1.0));
-        }
-        case EFFECT_GRAYSCALE: {
-            let lum = dot(color, vec3f(0.2126, 0.7152, 0.0722));
-            result = vec3f(lum);
-        }
-        case EFFECT_FXAA: {
-            result = apply_fxaa(pixel);
-        }
-        case EFFECT_OIL_PAINTING: {
-            result = apply_oil_painting(pixel);
-        }
-        case EFFECT_BW: {
-            let lum = dot(color, vec3f(0.2126, 0.7152, 0.0722));
-            result = select(vec3f(0.0), vec3f(1.0), lum > 0.5);
-        }
-        case EFFECT_COMIC: {
-            result = apply_comic(pixel, color);
-        }
-        case EFFECT_CASTING: {
-            result = apply_casting(pixel);
-        }
-        default: {}
+    var result = read_pixel(pixel);
+    for (var i = 0u; i < params.effect_count; i++) {
+        let eid = get_effect_id(i);
+        result = apply_single_effect(result, pixel, eid);
     }
 
     textureStore(output, pixel, vec4f(result, 1.0));

@@ -1,31 +1,40 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use bytemuck::{Pod, Zeroable};
 use serde::{Deserialize, Serialize};
 
 /// PBR metallic-roughness material (Cook-Torrance / GGX).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Material {
-    #[serde(default = "default_base_color")]
+    #[serde(
+        default = "default_base_color",
+        skip_serializing_if = "is_default_base_color"
+    )]
     pub base_color: [f32; 3],
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
     pub metallic: f32,
 
-    #[serde(default = "default_roughness")]
+    #[serde(
+        default = "default_roughness",
+        skip_serializing_if = "is_default_roughness"
+    )]
     pub roughness: f32,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_vec3")]
     pub emission: [f32; 3],
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
     pub emission_strength: f32,
 
-    #[serde(default = "default_ior")]
+    #[serde(default = "default_ior", skip_serializing_if = "is_default_ior")]
     pub ior: f32,
 
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero_f32")]
     pub transmission: f32,
 
-    #[serde(default = "default_no_texture")]
+    #[serde(default = "default_no_texture", skip_serializing_if = "is_no_texture")]
     pub texture_id: i32,
 }
 
@@ -43,6 +52,30 @@ fn default_ior() -> f32 {
 
 fn default_no_texture() -> i32 {
     -1
+}
+
+fn is_zero_f32(v: &f32) -> bool {
+    *v == 0.0
+}
+
+fn is_zero_vec3(v: &[f32; 3]) -> bool {
+    v[0] == 0.0 && v[1] == 0.0 && v[2] == 0.0
+}
+
+fn is_default_base_color(v: &[f32; 3]) -> bool {
+    *v == default_base_color()
+}
+
+fn is_default_roughness(v: &f32) -> bool {
+    *v == default_roughness()
+}
+
+fn is_default_ior(v: &f32) -> bool {
+    *v == default_ior()
+}
+
+fn is_no_texture(v: &i32) -> bool {
+    *v == default_no_texture()
 }
 
 impl Default for Material {
@@ -64,6 +97,10 @@ impl Material {
     pub fn is_emissive(&self) -> bool {
         self.emission_strength > 0.0
             && (self.emission[0] > 0.0 || self.emission[1] > 0.0 || self.emission[2] > 0.0)
+    }
+
+    pub fn is_default(&self) -> bool {
+        *self == Self::default()
     }
 }
 

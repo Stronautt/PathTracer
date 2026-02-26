@@ -1,6 +1,10 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use bytemuck::{Pod, Zeroable};
 
 use super::aabb::Aabb;
+use crate::constants::{BVH_LEAF_MAX_PRIMS, BVH_NUM_BINS};
 
 /// GPU BVH node. The left child is always stored at `index + 1` in the flat
 /// array; `left_or_prim` holds the right child index for inner nodes and the
@@ -39,7 +43,7 @@ impl Bvh {
         }
 
         let mut indices: Vec<usize> = (0..aabbs.len()).collect();
-        let mut build_nodes: Vec<BvhBuildNode> = Vec::new();
+        let mut build_nodes: Vec<BvhBuildNode> = Vec::with_capacity(2 * aabbs.len());
         Self::build_recursive(aabbs, &mut indices, 0, aabbs.len(), &mut build_nodes);
 
         let mut nodes = Vec::with_capacity(build_nodes.len());
@@ -65,7 +69,7 @@ impl Bvh {
             .fold(Aabb::EMPTY, |acc, &i| acc.union(aabbs[i]));
         let node_idx = nodes.len();
 
-        if count <= 4 {
+        if count <= BVH_LEAF_MAX_PRIMS {
             nodes.push(BvhBuildNode {
                 bounds,
                 left: None,
@@ -105,7 +109,6 @@ impl Bvh {
     }
 
     fn find_best_split(aabbs: &[Aabb], indices: &[usize], parent_bounds: &Aabb) -> (usize, f32) {
-        const NUM_BINS: usize = 12;
         let mut best_cost = f32::INFINITY;
         let mut best_axis = 0;
         let mut best_split = 0.0f32;
@@ -119,24 +122,24 @@ impl Bvh {
             }
 
             // Phase 1: Bin all primitives by centroid — O(N) per axis.
-            let mut bin_bounds = [Aabb::EMPTY; NUM_BINS];
-            let mut bin_counts = [0u32; NUM_BINS];
-            let inv_extent = NUM_BINS as f32 / extent;
+            let mut bin_bounds = [Aabb::EMPTY; BVH_NUM_BINS];
+            let mut bin_counts = [0u32; BVH_NUM_BINS];
+            let inv_extent = BVH_NUM_BINS as f32 / extent;
             for &idx in indices {
                 let centroid = aabbs[idx].center()[axis];
                 let b = ((centroid - min) * inv_extent) as usize;
-                let b = b.min(NUM_BINS - 1);
+                let b = b.min(BVH_NUM_BINS - 1);
                 bin_bounds[b] = bin_bounds[b].union(aabbs[idx]);
                 bin_counts[b] += 1;
             }
 
             // Phase 2: Right-to-left sweep — accumulate right-side bounds/counts.
-            let mut right_area = [0.0f32; NUM_BINS - 1];
-            let mut right_count = [0u32; NUM_BINS - 1];
+            let mut right_area = [0.0f32; BVH_NUM_BINS - 1];
+            let mut right_count = [0u32; BVH_NUM_BINS - 1];
             {
                 let mut rb = Aabb::EMPTY;
                 let mut rc = 0u32;
-                for i in (1..NUM_BINS).rev() {
+                for i in (1..BVH_NUM_BINS).rev() {
                     rb = rb.union(bin_bounds[i]);
                     rc += bin_counts[i];
                     right_area[i - 1] = rb.surface_area();
@@ -147,16 +150,15 @@ impl Bvh {
             // Phase 3: Left-to-right sweep — evaluate SAH cost at each split.
             let mut lb = Aabb::EMPTY;
             let mut lc = 0u32;
-            let bin_width = extent / NUM_BINS as f32;
-            for i in 0..(NUM_BINS - 1) {
+            let bin_width = extent / BVH_NUM_BINS as f32;
+            for i in 0..(BVH_NUM_BINS - 1) {
                 lb = lb.union(bin_bounds[i]);
                 lc += bin_counts[i];
                 if lc == 0 || right_count[i] == 0 {
                     continue;
                 }
 
-                let cost =
-                    lc as f32 * lb.surface_area() + right_count[i] as f32 * right_area[i];
+                let cost = lc as f32 * lb.surface_area() + right_count[i] as f32 * right_area[i];
 
                 if cost < best_cost {
                     best_cost = cost;

@@ -1,0 +1,46 @@
+camera:
+  position: [0, 4.5, -16]
+  rotation: [-5, 0, 0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: sphere
+  position: [-95, 100, -46]
+  radius: 30
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.9
+    emission: [1, 1, 1]
+    emission_strength: 8
+- type: sphere
+  position: [-6, 2, 0]
+  radius: 2
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.8
+- type: sphere
+  position: [0, 2, 0.5]
+  radius: 2
+  material:
+    base_color: [1, 1, 1]
+    metallic: 1.0
+    roughness: 0.1
+- type: sphere
+  position: [6, 2, 0]
+  radius: 2
+  material:
+    base_color: [1, 1, 1]
+    metallic: 1.0
+    roughness: 0.9
+- type: plane
+  position: [0, 0, 18]
+  normal: [0, 0, -1]
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.8
+- type: plane
+  position: [0, 0, 0]
+  normal: [0, 1, 0]
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.8

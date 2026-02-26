@@ -1,0 +1,16 @@
+camera:
+  position: [-171.21, 79.69, 75.04]
+  rotation: [23.1, 113.7, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  texture: resources/textures/desert_skybox.jpg
+  material:
+    base_color: [0.8, 0.8, 0.8]
+    roughness: 0.8
+models:
+- path: resources/models/mill/mill.obj
+  position: [0.0, 0.0, 0.0]
+  scale: 1.0

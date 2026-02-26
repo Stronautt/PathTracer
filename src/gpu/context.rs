@@ -1,3 +1,6 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use anyhow::Result;
 use std::sync::Arc;
 use winit::window::Window;

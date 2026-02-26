@@ -1,7 +1,11 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use bytemuck::{Pod, Zeroable};
 use glam::Vec3;
 
-use crate::scene::figure::{Figure, FigureType};
+use crate::constants::AABB_EPS;
+use crate::scene::shape::{Shape, ShapeType};
 
 /// Axis-aligned bounding box.
 #[derive(Debug, Clone, Copy)]
@@ -63,8 +67,9 @@ impl Aabb {
     /// Expands any axis thinner than `eps` by `eps` on each side to avoid
     /// degenerate zero-width slabs during ray-slab intersection.
     pub fn pad(self) -> Self {
-        const EPS: f32 = 0.0001;
-        self.pad_axis(0, EPS).pad_axis(1, EPS).pad_axis(2, EPS)
+        self.pad_axis(0, AABB_EPS)
+            .pad_axis(1, AABB_EPS)
+            .pad_axis(2, AABB_EPS)
     }
 
     fn pad_axis(mut self, axis: usize, eps: f32) -> Self {
@@ -97,69 +102,71 @@ impl From<&Aabb> for GpuAabb {
     }
 }
 
-pub fn figure_aabb(fig: &Figure) -> Aabb {
-    let pos = Vec3::from(fig.position);
+pub fn shape_aabb(shape: &Shape) -> Aabb {
+    let pos = Vec3::from(shape.position);
 
-    match fig.figure_type {
-        FigureType::Sphere => {
-            let r = Vec3::splat(fig.radius);
+    match shape.shape_type {
+        ShapeType::Sphere => {
+            let r = Vec3::splat(shape.radius);
             Aabb::new(pos - r, pos + r)
         }
-        FigureType::Cube => {
-            let half = Vec3::splat(fig.radius);
+        ShapeType::Cube => {
+            let half = Vec3::splat(shape.radius);
             Aabb::new(pos - half, pos + half)
         }
-        FigureType::Cylinder => {
-            let extent = Vec3::new(fig.radius, fig.height * 0.5, fig.radius);
+        ShapeType::Cylinder => {
+            let extent = Vec3::new(shape.radius, shape.height * 0.5, shape.radius);
             Aabb::new(pos - extent, pos + extent)
         }
-        FigureType::Cone | FigureType::Paraboloid | FigureType::Pyramid => {
-            let (r, h) = (fig.radius, fig.height);
+        ShapeType::Cone | ShapeType::Paraboloid | ShapeType::Pyramid => {
+            let (r, h) = (shape.radius, shape.height);
             Aabb::new(pos - Vec3::new(r, 0.0, r), pos + Vec3::new(r, h, r))
         }
-        FigureType::Torus => {
-            let extent = fig.radius + fig.radius2;
+        ShapeType::Torus => {
+            let extent = shape.radius + shape.radius2;
             Aabb::new(
-                pos - Vec3::new(extent, fig.radius2, extent),
-                pos + Vec3::new(extent, fig.radius2, extent),
+                pos - Vec3::new(extent, shape.radius2, extent),
+                pos + Vec3::new(extent, shape.radius2, extent),
             )
         }
-        FigureType::Disc => {
-            Aabb::new(pos - Vec3::splat(fig.radius), pos + Vec3::splat(fig.radius)).pad()
-        }
-        FigureType::Triangle => Aabb::from_point(Vec3::from(fig.v0))
-            .expand(Vec3::from(fig.v1))
-            .expand(Vec3::from(fig.v2))
+        ShapeType::Disc => Aabb::new(
+            pos - Vec3::splat(shape.radius),
+            pos + Vec3::splat(shape.radius),
+        )
+        .pad(),
+        ShapeType::Triangle => Aabb::from_point(Vec3::from(shape.v0))
+            .expand(Vec3::from(shape.v1))
+            .expand(Vec3::from(shape.v2))
             .pad(),
-        FigureType::Mandelbulb | FigureType::Julia => {
-            let r = Vec3::splat(fig.radius * 1.5);
+        ShapeType::Mandelbulb | ShapeType::Julia => {
+            let r = Vec3::splat(shape.radius * 1.5);
             Aabb::new(pos - r, pos + r)
         }
-        FigureType::Ellipsoid => {
+        ShapeType::Ellipsoid => {
             // radius = x-radius, radius2 = z-radius, height = y-radius
             let extent = Vec3::new(
-                fig.radius,
-                fig.height.max(fig.radius),
-                fig.radius2.max(fig.radius),
+                shape.radius,
+                shape.height.max(shape.radius),
+                shape.radius2.max(shape.radius),
             );
             Aabb::new(pos - extent, pos + extent)
         }
-        FigureType::Hyperboloid => {
-            let h = fig.height * 0.5;
-            let extent = Vec3::new(fig.radius + h, h, fig.radius + h);
+        ShapeType::Hyperboloid => {
+            let h = shape.height * 0.5;
+            let extent = Vec3::new(shape.radius + h, h, shape.radius + h);
             Aabb::new(pos - extent, pos + extent)
         }
-        FigureType::Mebius => {
-            let extent = Vec3::splat(fig.radius * 1.5);
+        ShapeType::Mebius => {
+            let extent = Vec3::splat(shape.radius * 1.5);
             Aabb::new(pos - extent, pos + extent)
         }
-        FigureType::Tetrahedron => {
-            let extent = Vec3::splat(fig.radius);
+        ShapeType::Tetrahedron => {
+            let extent = Vec3::splat(shape.radius);
             Aabb::new(pos - extent, pos + extent)
         }
         // Infinite primitives — given a large finite box so the BVH builder
         // can still include them; the shader handles their true intersection.
-        FigureType::Plane | FigureType::Skybox => {
+        ShapeType::Plane | ShapeType::Skybox => {
             let big = Vec3::splat(1e6);
             Aabb::new(-big, big)
         }

@@ -1,3 +1,6 @@
+// Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PostEffect {
     None,
@@ -42,6 +45,18 @@ impl PostEffect {
 
     pub const ALL: &[Self] = &[
         Self::None,
+        Self::Negative,
+        Self::Sepia,
+        Self::Grayscale,
+        Self::Fxaa,
+        Self::OilPainting,
+        Self::BlackAndWhite,
+        Self::Comic,
+        Self::Casting,
+    ];
+
+    /// All effects except None (for multi-select UI).
+    pub const ALL_EFFECTS: &[Self] = &[
         Self::Negative,
         Self::Sepia,
         Self::Grayscale,

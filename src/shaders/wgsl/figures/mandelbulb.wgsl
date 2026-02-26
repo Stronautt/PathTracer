@@ -1,51 +1,42 @@
 // #import types
 
-// Mandelbulb SDF using trig-free triplex algebra (2-4x faster than trig-based).
-fn sdf_mandelbulb(p: vec3f, power: f32) -> f32 {
-    var z = p;
-    var dr = 1.0;
-    var r = length(z);
+// Mandelbulb SDF using trig-based triplex algebra (supports variable power).
+// Reference: Inigo Quilez — https://iquilezles.org/articles/mandelbulb/
+fn sdf_mandelbulb(p: vec3f, power: f32, max_iter: i32) -> f32 {
+    var w = p;
+    var m = dot(w, w);
+    var dz = 1.0;
 
-    for (var i = 0; i < 12; i++) {
-        if r > 2.0 {
+    for (var i = 0; i < max_iter; i++) {
+        // dz = power * |w|^(power-1) * dz + 1
+        dz = power * pow(m, (power - 1.0) * 0.5) * dz + 1.0;
+
+        // w = w^power + p (triplex power via spherical coordinates)
+        let r = sqrt(m);
+        let b = power * acos(clamp(w.y / r, -1.0, 1.0));
+        let a = power * atan2(w.x, w.z);
+        let rp = pow(r, power);
+        w = p + rp * vec3f(sin(b) * sin(a), cos(b), sin(b) * cos(a));
+
+        m = dot(w, w);
+        if m > 256.0 {
             break;
         }
-
-        let r2 = r * r;
-        let r4 = r2 * r2;
-        let r7 = r4 * r2 * r;
-
-        // Trig-free triplex algebra for power 8 (Inigo Quilez method)
-        // This avoids acos/atan2/sin/cos per iteration
-        let x = z.x; let y = z.y; let z_c = z.z;
-        let x2 = x * x; let y2 = y * y; let z2 = z_c * z_c;
-
-        let k3 = x2 + z2;
-        let k2 = inverseSqrt(k3 * k3 * k3 * k3 * k3 * k3 * k3);
-        let k1 = x2 + y2 + z2;
-        let k4 = x2 - y2 + z2;
-
-        dr = r7 * 8.0 * dr + 1.0;
-
-        let k1_sq = k1 * k1;
-        let k4_sq = k4 * k4;
-
-        // Optimized triplex power-8 formula
-        let new_x = p.x + 64.0 * x * y * z_c * (x2 - z2) * k4_sq * k2 * sqrt(k3);
-        let new_y = p.y + -16.0 * y2 * k3 * k4_sq * k2 + k1_sq * k1_sq;
-        let new_z = p.z + -8.0 * y * k4 * (x2 * x2 - 6.0 * x2 * z2 + z2 * z2) * k2 * sqrt(k3);
-
-        z = vec3f(new_x, new_y, new_z);
-        r = length(z);
     }
 
-    return 0.5 * log(r) * r / dr;
+    // Hubbard-Douady distance estimate
+    let r = sqrt(m);
+    return 0.25 * log(m) * r / dz;
 }
 
 fn intersect_mandelbulb(ray: Ray, fig: Figure) -> HitRecord {
     var hit = HitRecord();
     hit.hit = false;
     hit.t = MAX_T;
+
+    // Fractal hyperparameters (packed in v0 by CPU)
+    let power = fig.v0.x;
+    let max_iter = i32(fig.v0.y);
 
     // Bounding sphere check
     let oc = ray.origin - fig.position;
@@ -66,13 +57,13 @@ fn intersect_mandelbulb(ray: Ray, fig: Figure) -> HitRecord {
     for (var i = 0; i < 256; i++) {
         let p = ray.origin + ray.direction * t - fig.position;
         let scaled_p = p / fig.radius;
-        let d = sdf_mandelbulb(scaled_p, 8.0) * fig.radius;
+        let d = sdf_mandelbulb(scaled_p, power, max_iter) * fig.radius;
 
         // Over-relaxation fallback
         if d < 0.0 && prev_d > 0.0 {
             t -= prev_d * (omega - 1.0);
             let p2 = ray.origin + ray.direction * t - fig.position;
-            let d2 = sdf_mandelbulb(p2 / fig.radius, 8.0) * fig.radius;
+            let d2 = sdf_mandelbulb(p2 / fig.radius, power, max_iter) * fig.radius;
             t += d2;
             prev_d = d2;
             continue;
@@ -88,10 +79,10 @@ fn intersect_mandelbulb(ray: Ray, fig: Figure) -> HitRecord {
             let e = vec2f(1.0, -1.0) * 0.5773 * EPSILON * 2.0;
             let local = (hit.position - fig.position) / fig.radius;
             hit.normal = normalize(
-                e.xyy * sdf_mandelbulb(local + e.xyy, 8.0) +
-                e.yyx * sdf_mandelbulb(local + e.yyx, 8.0) +
-                e.yxy * sdf_mandelbulb(local + e.yxy, 8.0) +
-                e.xxx * sdf_mandelbulb(local + e.xxx, 8.0)
+                e.xyy * sdf_mandelbulb(local + e.xyy, power, max_iter) +
+                e.yyx * sdf_mandelbulb(local + e.yyx, power, max_iter) +
+                e.yxy * sdf_mandelbulb(local + e.yxy, power, max_iter) +
+                e.xxx * sdf_mandelbulb(local + e.xxx, power, max_iter)
             );
 
             hit.uv = vec2f(0.0);
