@@ -272,7 +272,17 @@ jobs:
           sed -i "s|__BINARY__|${{ env.BINARY_NAME }}|g" installer.nsi
           sed -i "s|__VERSION__|${{ inputs.tag }}|g" installer.nsi
 
-          "/c/Program Files (x86)/NSIS/makensis.exe" installer.nsi
+          # Locate makensis (path varies across runner image versions)
+          if [ -f "/c/Program Files (x86)/NSIS/makensis.exe" ]; then
+            MAKENSIS="/c/Program Files (x86)/NSIS/makensis.exe"
+          elif [ -f "/c/Program Files/NSIS/makensis.exe" ]; then
+            MAKENSIS="/c/Program Files/NSIS/makensis.exe"
+          else
+            echo "NSIS not found, installing via choco..."
+            choco install nsis -y --no-progress
+            MAKENSIS="/c/Program Files (x86)/NSIS/makensis.exe"
+          fi
+          "${MAKENSIS}" installer.nsi
 
       # ── Linux AppImage ─────────────────────────────────────────────
       - name: Create AppImage (Linux)
