@@ -85,6 +85,7 @@ jobs:
         if: runner.os == 'macOS'
         run: strip -x target/release/${{ env.BINARY_NAME }}
 
+      # ── Prepare archive directory ──────────────────────────────────
       - name: Prepare archive directory
         shell: bash
         run: |
@@ -98,6 +99,9 @@ jobs:
             cp "target/release/${{ env.BINARY_NAME }}" "${ARCHIVE_NAME}/"
           fi
 
+          # Copy shaders (WGSL sources required at runtime)
+          cp -r src/shaders/wgsl/ "${ARCHIVE_NAME}/shaders/"
+
           # Copy resources (exclude legacy directory)
           cp -r resources/ "${ARCHIVE_NAME}/resources/"
 
@@ -107,6 +111,7 @@ jobs:
 
           echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
 
+      # ── Portable archives ──────────────────────────────────────────
       - name: Create tar.gz archive (Linux/macOS)
         if: matrix.archive == 'tar.gz'
         shell: bash
@@ -121,11 +126,230 @@ jobs:
           Compress-Archive -Path "${{ env.ARCHIVE_NAME }}" -DestinationPath "${{ env.ARCHIVE_NAME }}.zip" -CompressionLevel Optimal
           echo "ASSET=${{ env.ARCHIVE_NAME }}.zip" >> $env:GITHUB_ENV
 
-      - name: Upload build artifact
+      # ── macOS .app bundle + DMG ────────────────────────────────────
+      - name: Create macOS app bundle and DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          APP="Path Tracer.app"
+          mkdir -p "${APP}/Contents/MacOS"
+          mkdir -p "${APP}/Contents/Resources"
+
+          # Binary
+          cp "target/release/${{ env.BINARY_NAME }}" "${APP}/Contents/MacOS/"
+
+          # Data files
+          cp -r src/shaders/wgsl/ "${APP}/Contents/Resources/shaders/"
+          cp -r resources/ "${APP}/Contents/Resources/resources/"
+
+          # Convert PNG → ICNS
+          ICONSET="AppIcon.iconset"
+          mkdir -p "${ICONSET}"
+          for size in 16 32 128 256; do
+            sips -z $size $size resources/icon.png --out "${ICONSET}/icon_${size}x${size}.png" >/dev/null
+          done
+          sips -z 32 32   resources/icon.png --out "${ICONSET}/icon_16x16@2x.png"  >/dev/null
+          sips -z 64 64   resources/icon.png --out "${ICONSET}/icon_32x32@2x.png"  >/dev/null
+          sips -z 256 256 resources/icon.png --out "${ICONSET}/icon_128x128@2x.png" >/dev/null
+          iconutil -c icns "${ICONSET}" -o "${APP}/Contents/Resources/AppIcon.icns"
+
+          # Info.plist
+          TAG="${{ inputs.tag }}"
+          VERSION="${TAG#v}"
+          cat > "${APP}/Contents/Info.plist" << PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>Path Tracer</string>
+            <key>CFBundleDisplayName</key>
+            <string>Path Tracer</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.pashagricenko.pathtracer</string>
+            <key>CFBundleVersion</key>
+            <string>${VERSION}</string>
+            <key>CFBundleShortVersionString</key>
+            <string>${VERSION}</string>
+            <key>CFBundleExecutable</key>
+            <string>${{ env.BINARY_NAME }}</string>
+            <key>CFBundleIconFile</key>
+            <string>AppIcon</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>LSMinimumSystemVersion</key>
+            <string>11.0</string>
+          </dict>
+          </plist>
+          PLIST
+
+          # Create DMG from the .app bundle
+          hdiutil create \
+            -volname "Path Tracer" \
+            -srcfolder "${APP}" \
+            -ov -format UDZO \
+            "${{ env.ARCHIVE_NAME }}.dmg"
+
+      # ── Windows NSIS installer ─────────────────────────────────────
+      - name: Create NSIS installer (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Convert PNG → ICO via Python/Pillow
+          pip install Pillow --quiet
+          python -c "
+          from PIL import Image
+          img = Image.open('resources/icon.png').convert('RGBA')
+          img.save('app.ico', format='ICO',
+                   sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
+          "
+
+          # Place ICO in the archive dir so NSIS can find it
+          cp app.ico "${{ env.ARCHIVE_NAME }}/app.ico"
+
+          cat > installer.nsi << 'NSIEOF'
+          !include "MUI2.nsh"
+
+          !define MUI_ICON "__ARCHIVEDIR__\app.ico"
+          !define MUI_UNICON "__ARCHIVEDIR__\app.ico"
+
+          Name "Path Tracer"
+          OutFile "__OUTFILE__"
+          InstallDir "$PROGRAMFILES\Path Tracer"
+          RequestExecutionLevel admin
+
+          !insertmacro MUI_PAGE_WELCOME
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_PAGE_FINISH
+
+          !insertmacro MUI_UNPAGE_CONFIRM
+          !insertmacro MUI_UNPAGE_INSTFILES
+
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "Install"
+            SetOutPath $INSTDIR
+            File "__ARCHIVEDIR__\__BINARY__.exe"
+            File "__ARCHIVEDIR__\app.ico"
+            File /r "__ARCHIVEDIR__\shaders"
+            File /r "__ARCHIVEDIR__\resources"
+            File "__ARCHIVEDIR__\README.md"
+
+            WriteUninstaller "$INSTDIR\uninstall.exe"
+
+            CreateDirectory "$SMPROGRAMS\Path Tracer"
+            CreateShortcut "$SMPROGRAMS\Path Tracer\Path Tracer.lnk" \
+              "$INSTDIR\__BINARY__.exe" "" "$INSTDIR\app.ico"
+            CreateShortcut "$SMPROGRAMS\Path Tracer\Uninstall.lnk" \
+              "$INSTDIR\uninstall.exe"
+
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PathTracer" \
+              "DisplayName" "Path Tracer"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PathTracer" \
+              "UninstallString" "$\"$INSTDIR\uninstall.exe$\""
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PathTracer" \
+              "DisplayVersion" "__VERSION__"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PathTracer" \
+              "DisplayIcon" "$INSTDIR\app.ico"
+          SectionEnd
+
+          Section "Uninstall"
+            RMDir /r "$INSTDIR"
+            RMDir /r "$SMPROGRAMS\Path Tracer"
+            DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PathTracer"
+          SectionEnd
+          NSIEOF
+
+          # Substitute placeholders
+          sed -i "s|__OUTFILE__|${{ env.ARCHIVE_NAME }}-setup.exe|g" installer.nsi
+          sed -i "s|__ARCHIVEDIR__|${{ env.ARCHIVE_NAME }}|g" installer.nsi
+          sed -i "s|__BINARY__|${{ env.BINARY_NAME }}|g" installer.nsi
+          sed -i "s|__VERSION__|${{ inputs.tag }}|g" installer.nsi
+
+          "/c/Program Files (x86)/NSIS/makensis.exe" installer.nsi
+
+      # ── Linux AppImage ─────────────────────────────────────────────
+      - name: Create AppImage (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          APPDIR="PathTracer.AppDir"
+          mkdir -p "${APPDIR}/usr/bin"
+
+          # Copy binary and data alongside it so exe-relative paths work
+          cp "target/release/${{ env.BINARY_NAME }}" "${APPDIR}/usr/bin/"
+          cp -r src/shaders/wgsl/ "${APPDIR}/usr/bin/shaders/"
+          cp -r resources/ "${APPDIR}/usr/bin/resources/"
+
+          # Desktop entry (required by AppImage spec)
+          cat > "${APPDIR}/path-tracer.desktop" << 'DESKTOP'
+          [Desktop Entry]
+          Type=Application
+          Name=Path Tracer
+          Exec=path-tracer
+          Icon=path-tracer
+          Categories=Graphics;3DGraphics;
+          Comment=GPU-accelerated PBR path tracer
+          DESKTOP
+
+          # Icon at AppDir root (required by AppImage spec)
+          cp resources/icon.png "${APPDIR}/path-tracer.png"
+
+          # AppRun entry point — sets CWD next to the binary
+          cat > "${APPDIR}/AppRun" << 'APPRUN'
+          #!/bin/bash
+          SELF="$(readlink -f "$0")"
+          HERE="${SELF%/*}"
+          cd "$HERE/usr/bin"
+          exec "./path-tracer" "$@"
+          APPRUN
+          chmod +x "${APPDIR}/AppRun"
+
+          # Download appimagetool for the current architecture
+          ARCH="$(uname -m)"
+          curl -fsSL -o appimagetool \
+            "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage"
+          chmod +x appimagetool
+
+          APPIMAGE_EXTRACT_AND_RUN=1 ARCH="${ARCH}" \
+            ./appimagetool --no-appstream "${APPDIR}" "${{ env.ARCHIVE_NAME }}.AppImage"
+
+      # ── Upload artifacts ───────────────────────────────────────────
+      - name: Upload archive artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ARCHIVE_NAME }}
+          name: archive-${{ matrix.target }}
           path: ${{ env.ASSET }}
+          retention-days: 1
+
+      - name: Upload installer artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.target }}
+          path: ${{ env.ARCHIVE_NAME }}.dmg
+          retention-days: 1
+
+      - name: Upload installer artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.target }}
+          path: ${{ env.ARCHIVE_NAME }}-setup.exe
+          retention-days: 1
+
+      - name: Upload installer artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.target }}
+          path: ${{ env.ARCHIVE_NAME }}.AppImage
           retention-days: 1
 
   release:
@@ -150,7 +374,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          name: PathTracer ${{ inputs.tag }}
+          name: "Path Tracer ${{ inputs.tag }}"
           generate_release_notes: true
           draft: false
           prerelease: false

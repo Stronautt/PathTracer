@@ -39,6 +39,7 @@ pub struct UiActions {
     /// Scale ratio to apply to the selected model group (new_scale / old_scale).
     pub model_scale_ratio: Option<f32>,
     /// Signal the app to open a file dialog on a background thread.
+    pub open_scene_dialog: bool,
     pub open_import_scene_dialog: bool,
     pub open_import_model_dialog: bool,
 }

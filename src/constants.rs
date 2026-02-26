@@ -1,6 +1,8 @@
 // Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::path::PathBuf;
+
 // GPU / compute
 pub const WORKGROUP_SIZE: u32 = 8;
 
@@ -43,10 +45,29 @@ pub const ACCUM_BYTES_PER_PIXEL: u64 = 16;
 pub const DEFAULT_WINDOW_WIDTH: u32 = 1280;
 pub const DEFAULT_WINDOW_HEIGHT: u32 = 720;
 
-// Default scene path
-pub const DEFAULT_SCENE_PATH: &str = "resources/scenes/demo.yaml";
+// Default paths
 pub const WINDOW_ICON_PATH: &str = "resources/icon.png";
 
 // Post-process params slot counts
 pub const POST_PARAMS_SIZE: usize = 12;
 pub const POST_PARAMS_MAX_EFFECTS: usize = 8;
+
+/// Resolve a data-file path: check next to the executable first, then macOS bundle, then CWD.
+pub fn resolve_data_path(relative: &str) -> PathBuf {
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            let candidates = [
+                // Portable archives, Windows installer, AppImage
+                dir.join(relative),
+                // macOS .app bundle: Contents/MacOS/../Resources/<relative>
+                dir.join("../Resources").join(relative),
+            ];
+            for path in &candidates {
+                if path.exists() {
+                    return path.clone();
+                }
+            }
+        }
+    }
+    PathBuf::from(relative)
+}

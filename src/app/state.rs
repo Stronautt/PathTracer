@@ -29,6 +29,7 @@ use crate::shaders::composer::ShaderComposer;
 use crate::ui;
 
 pub enum FileDialogResult {
+    OpenScene(PathBuf),
     ImportScene(PathBuf),
     ImportModel(PathBuf),
 }
@@ -96,7 +97,7 @@ impl AppState {
                 DEFAULT_WINDOW_HEIGHT,
             ));
 
-        if let Ok(img) = image::open(WINDOW_ICON_PATH) {
+        if let Ok(img) = image::open(crate::constants::resolve_data_path(WINDOW_ICON_PATH)) {
             let rgba = img.to_rgba8();
             let (w, h) = rgba.dimensions();
             if let Ok(icon) = Icon::from_rgba(rgba.into_raw(), w, h) {
@@ -112,8 +113,7 @@ impl AppState {
         let scene = if let Some(path) = scene_path {
             crate::scene::loader::load_scene(Path::new(path))?
         } else {
-            crate::scene::loader::load_scene(Path::new(DEFAULT_SCENE_PATH))
-                .unwrap_or_else(|_| Scene::empty())
+            Scene::empty()
         };
 
         let camera = Camera::new(

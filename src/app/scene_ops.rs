@@ -8,9 +8,46 @@ use crate::scene::material::Material;
 use crate::scene::scene::{CameraConfig, Scene};
 use crate::scene::shape::{Shape, ShapeType};
 
+use crate::camera::camera::Camera;
+
 use super::state::AppState;
 
 impl AppState {
+    pub fn open_scene(&mut self, path: &Path) {
+        match crate::scene::loader::load_scene(path) {
+            Ok(scene) => {
+                self.camera = Camera::new(
+                    scene.camera.position.into(),
+                    scene.camera.rotation,
+                    scene.camera.fov,
+                    scene.camera.exposure,
+                );
+                self.ui_state.exposure = self.camera.exposure;
+                self.shapes = scene.shapes;
+
+                for model_ref in &scene.models {
+                    match crate::model::obj_loader::load_obj(
+                        &model_ref.path,
+                        model_ref.position,
+                        model_ref.scale,
+                        &model_ref.material,
+                    ) {
+                        Ok(triangles) => self.shapes.extend(triangles),
+                        Err(e) => {
+                            log::error!("Failed to load model '{}': {e:#}", model_ref.path)
+                        }
+                    }
+                }
+
+                self.ui_state.selected_shape = None;
+                self.rebuild_scene_buffers_with_textures();
+                self.accumulator.reset();
+                log::info!("Opened scene: {}", path.display());
+            }
+            Err(e) => log::error!("Failed to open scene: {e:#}"),
+        }
+    }
+
     pub fn add_shape(&mut self, shape_type: ShapeType) {
         let mut shape = Shape {
             name: None,

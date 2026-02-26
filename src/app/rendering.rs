@@ -219,6 +219,17 @@ impl AppState {
             self.import_model(&path);
         }
         // Spawn file dialogs on background threads to avoid blocking the event loop.
+        if ui_actions.open_scene_dialog {
+            let tx = self.file_dialog_tx.clone();
+            std::thread::spawn(move || {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("YAML scene", &["yaml", "yml", "json"])
+                    .pick_file()
+                {
+                    let _ = tx.send(FileDialogResult::OpenScene(path));
+                }
+            });
+        }
         if ui_actions.open_import_scene_dialog {
             let tx = self.file_dialog_tx.clone();
             std::thread::spawn(move || {
@@ -244,6 +255,7 @@ impl AppState {
         // Poll for completed file dialog results (non-blocking).
         while let Ok(result) = self.file_dialog_rx.try_recv() {
             match result {
+                FileDialogResult::OpenScene(path) => self.open_scene(&path),
                 FileDialogResult::ImportScene(path) => self.import_scene(&path),
                 FileDialogResult::ImportModel(path) => self.import_model(&path),
             }

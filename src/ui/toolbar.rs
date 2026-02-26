@@ -26,15 +26,19 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
             ui.separator();
 
             ui.menu_button("🎬 Scene", |ui| {
+                if ui.button("📂 Open...").pointer().clicked() {
+                    actions.open_scene_dialog = true;
+                    ui.close_menu();
+                }
+                if ui.button("💾 Save...").pointer().clicked() {
+                    state.save_dialog_open = true;
+                    ui.close_menu();
+                }
                 if ui.button("📷 Screenshot").pointer().clicked() {
                     state.screenshot_filename = crate::io::screenshot::default_screenshot_path()
                         .to_string_lossy()
                         .to_string();
                     state.screenshot_dialog_open = true;
-                    ui.close_menu();
-                }
-                if ui.button("💾 Save...").pointer().clicked() {
-                    state.save_dialog_open = true;
                     ui.close_menu();
                 }
 

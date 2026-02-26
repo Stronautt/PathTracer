@@ -92,16 +92,28 @@ impl ShaderComposer {
         self.modules.insert(name.to_string(), source.to_string());
     }
 
-    /// Locate the shader directory relative to the executable, falling back to `./src/shaders/wgsl`.
+    /// Locate the shader directory, checking multiple locations:
+    /// 1. `<exe_dir>/shaders/` — release distributions (archives, installers, AppImage)
+    /// 2. `<exe_dir>/../Resources/shaders/` — macOS `.app` bundle
+    /// 3. `<exe_dir>/../../src/shaders/wgsl` — `cargo run` (target/debug/ or target/release/)
+    /// 4. `src/shaders/wgsl` — fallback relative to CWD
     pub fn shader_dir() -> PathBuf {
-        // `cargo run` places the executable two levels below the workspace root
-        // (e.g. target/debug/path_tracer), so `../../src/shaders/wgsl` reaches the source tree.
-        let candidate = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.join("../../src/shaders/wgsl")));
-
-        if let Some(path) = candidate.filter(|p| p.exists()) {
-            return path;
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                let candidates = [
+                    // Release distribution: shaders/ next to the binary
+                    exe_dir.join("shaders"),
+                    // macOS .app bundle: Contents/MacOS/../Resources/shaders
+                    exe_dir.join("../Resources/shaders"),
+                    // cargo run: executable is in target/{debug,release}/
+                    exe_dir.join("../../src/shaders/wgsl"),
+                ];
+                for path in &candidates {
+                    if path.exists() {
+                        return path.clone();
+                    }
+                }
+            }
         }
 
         PathBuf::from("src/shaders/wgsl")
