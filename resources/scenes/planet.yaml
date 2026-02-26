@@ -1,0 +1,35 @@
+camera:
+  position: [0, 0.5, -4]
+  rotation: [0, 0, 0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: sphere
+  position: [0, 1, 0]
+  radius: 1
+  texture: resources/textures/jupiter.jpg
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.1
+- type: disc
+  position: [0, 1, 0]
+  normal: [0.5, -1, 0.4]
+  radius: 1.3
+  negative: true
+  material:
+    base_color: [0.0, 0.0, 0.0]
+    roughness: 1.0
+- type: disc
+  position: [0, 1, 0]
+  normal: [0.5, -1, 0.4]
+  radius: 1.94
+  texture: resources/textures/saturn.jpg
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.8
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  texture: resources/textures/night_sky.png
+  material:
+    base_color: [0.8, 0.8, 0.8]
+    roughness: 0.8

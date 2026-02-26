@@ -1,6 +1,12 @@
-*.o
-*.a
-obj
-RT
+# Rust build artifacts
+/target
+
+# Claude Code
+.claude
+
+# Screenshots
 screenshot*.ppm
-build*/
+screenshot*.png
+
+# Runtime-generated scene files
+scene_saved.yaml

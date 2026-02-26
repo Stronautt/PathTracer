@@ -1,3 +1,3 @@
 [submodule "dep/libft"]
-	path = dep/libft
+	path = legacy/dep/libft
 	url = https://github.com/CoZZmOnAvT/libft.git

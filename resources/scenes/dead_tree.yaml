@@ -1,0 +1,23 @@
+camera:
+  position: [15.87, 6.04, 7.39]
+  rotation: [19.0, -115.0, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  texture: resources/textures/hell_skybox.jpg
+  material:
+    base_color: [0.8, 0.8, 0.8]
+    roughness: 0.8
+- type: disc
+  position: [0.0, 0.0, 0.0]
+  normal: [0.0, 1.0, 0.0]
+  radius: 10.0
+  material:
+    base_color: [0.96, 0.96, 0.56]
+    roughness: 0.8
+models:
+- path: resources/models/dead_tree/dead_tree.obj
+  position: [0.0, 0.0, 0.0]
+  scale: 1.0

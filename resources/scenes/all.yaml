@@ -1,0 +1,112 @@
+camera:
+  position: [0.0, 0.0, 0.0]
+  rotation: [0.0, 0.0, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: plane
+  position: [0.0, -1.0, 0.0]
+  normal: [0.0, 1.0, 0.0]
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.9
+    emission: [1, 1, 1]
+    emission_strength: 1.0
+- type: sphere
+  position: [1.6, 0.3, 3.4]
+  radius: 0.5
+  material:
+    base_color: [0, 0.75, 0]
+    roughness: 0.8
+- type: cylinder
+  position: [-3.5, -1.0, 5.0]
+  normal: [0.0, 1.0, 0.0]
+  height: 2.0
+  radius: 0.5
+  material:
+    base_color: [0, 1, 0]
+    roughness: 0.8
+- type: cone
+  position: [3.5, -1.0, 5.0]
+  normal: [0.0, 1.0, 0.0]
+  height: 2.0
+  radius: 0.5359
+  material:
+    base_color: [0.0, 1.0, 1.0]
+    roughness: 0.8
+- type: ellipsoid
+  position: [0.0, 0.0, 5.0]
+  radius: 0.5
+  material:
+    base_color: [1.0, 0.0, 0.0]
+    roughness: 0.8
+- type: paraboloid
+  position: [-2.1, 1.0, 7.5]
+  normal: [0.089087, 0.890871, -0.445435]
+  height: 1.1225
+  radius: 0.0
+  material:
+    base_color: [1.0, 0.0, 1.0]
+    roughness: 0.8
+- type: hyperboloid
+  position: [2.0, 1.2, 7.0]
+  normal: [0.0, 1.0, 0.0]
+  height: 0.9
+  radius: 0.0
+  material:
+    base_color: [1.0, 1.0, 0.0]
+    roughness: 0.8
+- type: disc
+  position: [-1.0, 0.0, 3.0]
+  normal: [1.0, 1.0, 1.0]
+  radius: 0.5
+  material:
+    base_color: [1.0, 1.0, 1.0]
+    roughness: 0.8
+- type: cube
+  position: [1.5, -1.0, 4.0]
+  normal: [0.0, 0.0, 1.0]
+  radius: 1.0
+  radius2: 1.0
+  material:
+    base_color: [0.0, 0.0, 0.5]
+    roughness: 0.8
+- type: torus
+  position: [-1.0, -0.7, 2.2]
+  normal: [0.0, 1.0, -0.1]
+  radius: 0.15
+  radius2: 0.3
+  material:
+    base_color: [0.0, 0.5, 0.0]
+    roughness: 0.8
+- type: pyramid
+  position: [0.0, -1.0, 3.0]
+  normal: [0.0, 0.0, 1.0]
+  radius: 1.0
+  radius2: 1.0
+  material:
+    base_color: [0.5, 0.0, 0.5]
+    roughness: 0.8
+- type: triangle
+  position: [0.0, 0.0, 0.0]
+  v0: [1.2, -1.0, 2.6]
+  v1: [2.0, -1.0, 2.3]
+  v2: [2.1, 0.0, 2.5]
+  material:
+    base_color: [0.5, 0.5, 0.0]
+    roughness: 0.8
+- type: tetrahedron
+  position: [-2.0, -1.0, 3.3]
+  normal: [0.688247, -0.229416, 0.688247]
+  radius: 1.5
+  material:
+    base_color: [0.5, 0.5, 0.5]
+    roughness: 0.8
+- type: mebius
+  position: [0, 1, 0]
+  normal: [0, -1, 0]
+  radius: 2
+  radius2: 0.5
+  material:
+    base_color: [1, 1, 1]
+    roughness: 0.8

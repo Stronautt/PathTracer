@@ -1,0 +1,28 @@
+camera:
+  position: [0, 2, -6]
+  rotation: [-25, 0, 0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: sphere
+  position: [0, -1, 0]
+  radius: 2
+  material:
+    base_color: [1, 1, 1]
+    transmission: 1.0
+    ior: 1.5
+    roughness: 0.0
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  texture: resources/textures/desert_skybox.jpg
+  material:
+    base_color: [0.8, 0.8, 0.8]
+    roughness: 0.8
+- type: plane
+  position: [0, -1, 0]
+  normal: [0, 1, 0]
+  texture: resources/textures/test.png
+  texture_scale: 0.1
+  material:
+    base_color: [0.9, 0.67, 0.44]
+    roughness: 0.8

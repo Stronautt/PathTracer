@@ -1,0 +1,16 @@
+camera:
+  position: [-0.66, 12.71, 25.69]
+  rotation: [-4.8, -179.1, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  texture: resources/textures/night_sky.png
+  material:
+    base_color: [0.8, 0.8, 0.8]
+    roughness: 0.8
+models:
+- path: resources/models/man/man.obj
+  position: [0.0, 0.0, 0.0]
+  scale: 1.0

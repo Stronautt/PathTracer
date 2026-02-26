@@ -1,0 +1,23 @@
+camera:
+  position: [0.6, 0.7, -7.47]
+  rotation: [-3.0, 5.7, 0.0]
+  fov: 60.0
+  exposure: 1.0
+shapes:
+- type: skybox
+  position: [0.0, 0.0, 0.0]
+  material:
+    base_color: [0.7, 0.7, 0.7]
+    roughness: 0.8
+- type: plane
+  position: [0.0, -1.1, 0.0]
+  normal: [0.0, 1.0, 0.0]
+  texture: resources/textures/wood.jpg
+  texture_scale: 0.1
+  material:
+    base_color: [0.0, 0.0, 0.0]
+    roughness: 0.8
+models:
+- path: resources/models/teapot/teapot.obj
+  position: [0.0, 0.0, 0.0]
+  scale: 1.0
