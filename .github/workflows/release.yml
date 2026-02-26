@@ -24,19 +24,14 @@ jobs:
         include:
           - target: aarch64-apple-darwin
             os: macos-latest
-            archive: tar.gz
           - target: x86_64-apple-darwin
             os: macos-15-intel
-            archive: tar.gz
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            archive: tar.gz
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-            archive: tar.gz
           - target: x86_64-pc-windows-msvc
             os: windows-latest
-            archive: zip
 
     runs-on: ${{ matrix.os }}
 
@@ -85,46 +80,9 @@ jobs:
         if: runner.os == 'macOS'
         run: strip -x target/release/${{ env.BINARY_NAME }}
 
-      # ── Prepare archive directory ──────────────────────────────────
-      - name: Prepare archive directory
+      - name: Set archive name
         shell: bash
-        run: |
-          ARCHIVE_NAME="${{ env.BINARY_NAME }}-${{ inputs.tag }}-${{ matrix.target }}"
-          mkdir -p "${ARCHIVE_NAME}"
-
-          # Copy binary
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "target/release/${{ env.BINARY_NAME }}.exe" "${ARCHIVE_NAME}/"
-          else
-            cp "target/release/${{ env.BINARY_NAME }}" "${ARCHIVE_NAME}/"
-          fi
-
-          # Copy shaders (WGSL sources required at runtime)
-          cp -r src/shaders/wgsl/ "${ARCHIVE_NAME}/shaders/"
-
-          # Copy resources (exclude legacy directory)
-          cp -r resources/ "${ARCHIVE_NAME}/resources/"
-
-          # Copy documentation
-          cp README.md "${ARCHIVE_NAME}/"
-          [ -f LICENSE ] && cp LICENSE "${ARCHIVE_NAME}/"
-
-          echo "ARCHIVE_NAME=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
-
-      # ── Portable archives ──────────────────────────────────────────
-      - name: Create tar.gz archive (Linux/macOS)
-        if: matrix.archive == 'tar.gz'
-        shell: bash
-        run: |
-          tar -czf "${{ env.ARCHIVE_NAME }}.tar.gz" "${{ env.ARCHIVE_NAME }}"
-          echo "ASSET=${{ env.ARCHIVE_NAME }}.tar.gz" >> "$GITHUB_ENV"
-
-      - name: Create zip archive (Windows)
-        if: matrix.archive == 'zip'
-        shell: pwsh
-        run: |
-          Compress-Archive -Path "${{ env.ARCHIVE_NAME }}" -DestinationPath "${{ env.ARCHIVE_NAME }}.zip" -CompressionLevel Optimal
-          echo "ASSET=${{ env.ARCHIVE_NAME }}.zip" >> $env:GITHUB_ENV
+        run: echo "ARCHIVE_NAME=${{ env.BINARY_NAME }}-${{ inputs.tag }}-${{ matrix.target }}" >> "$GITHUB_ENV"
 
       # ── macOS .app bundle + DMG ────────────────────────────────────
       - name: Create macOS app bundle and DMG
@@ -188,10 +146,18 @@ jobs:
           </plist>
           PLIST
 
-          # Create DMG from the .app bundle
+          # Ad-hoc codesign so Gatekeeper doesn't flag the app as "damaged"
+          codesign --force --deep --sign - "${APP}"
+
+          # Stage DMG contents with Applications shortcut for drag-and-drop install
+          DMG_STAGING="dmg-staging"
+          mkdir -p "${DMG_STAGING}"
+          mv "${APP}" "${DMG_STAGING}/"
+          ln -s /Applications "${DMG_STAGING}/Applications"
+
           hdiutil create \
             -volname "Path Tracer" \
-            -srcfolder "${APP}" \
+            -srcfolder "${DMG_STAGING}" \
             -ov -format UDZO \
             "${{ env.ARCHIVE_NAME }}.dmg"
 
@@ -209,8 +175,14 @@ jobs:
                    sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
           "
 
-          # Place ICO in the archive dir so NSIS can find it
-          cp app.ico "${{ env.ARCHIVE_NAME }}/app.ico"
+          # Stage files for NSIS
+          STAGE="${{ env.ARCHIVE_NAME }}"
+          mkdir -p "${STAGE}"
+          cp "target/release/${{ env.BINARY_NAME }}.exe" "${STAGE}/"
+          cp -r src/shaders/wgsl/ "${STAGE}/shaders/"
+          cp -r resources/ "${STAGE}/resources/"
+          cp README.md "${STAGE}/"
+          cp app.ico "${STAGE}/app.ico"
 
           cat > installer.nsi << 'NSIEOF'
           !include "MUI2.nsh"
@@ -330,37 +302,30 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN=1 ARCH="${ARCH}" \
             ./appimagetool --no-appstream "${APPDIR}" "${{ env.ARCHIVE_NAME }}.AppImage"
 
-      # ── Upload artifacts ───────────────────────────────────────────
-      - name: Upload archive artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: archive-${{ matrix.target }}
-          path: ${{ env.ASSET }}
-          retention-days: 1
-
-      - name: Upload installer artifact (macOS)
+      # ── Upload installer artifacts ─────────────────────────────────
+      - name: Upload DMG (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.target }}
           path: ${{ env.ARCHIVE_NAME }}.dmg
-          retention-days: 1
+          retention-days: 2
 
-      - name: Upload installer artifact (Windows)
+      - name: Upload installer (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.target }}
           path: ${{ env.ARCHIVE_NAME }}-setup.exe
-          retention-days: 1
+          retention-days: 2
 
-      - name: Upload installer artifact (Linux)
+      - name: Upload AppImage (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.target }}
           path: ${{ env.ARCHIVE_NAME }}.AppImage
-          retention-days: 1
+          retention-days: 2
 
   release:
     name: Create GitHub Release
