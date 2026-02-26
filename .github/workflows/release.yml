@@ -111,10 +111,13 @@ jobs:
           sips -z 256 256 resources/icon.png --out "${ICONSET}/icon_128x128@2x.png" >/dev/null
           iconutil -c icns "${ICONSET}" -o "${APP}/Contents/Resources/AppIcon.icns"
 
-          # Info.plist
+          # PkgInfo (conventional for macOS app bundles)
+          printf 'APPL????' > "${APP}/Contents/PkgInfo"
+
+          # Info.plist (single-quoted heredoc avoids shell expansion issues)
           TAG="${{ inputs.tag }}"
           VERSION="${TAG#v}"
-          cat > "${APP}/Contents/Info.plist" << PLIST
+          cat > "${APP}/Contents/Info.plist" << 'PLISTEOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
             "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -127,11 +130,11 @@ jobs:
             <key>CFBundleIdentifier</key>
             <string>com.pashagricenko.pathtracer</string>
             <key>CFBundleVersion</key>
-            <string>${VERSION}</string>
+            <string>__VERSION__</string>
             <key>CFBundleShortVersionString</key>
-            <string>${VERSION}</string>
+            <string>__VERSION__</string>
             <key>CFBundleExecutable</key>
-            <string>${{ env.BINARY_NAME }}</string>
+            <string>__BINARY__</string>
             <key>CFBundleIconFile</key>
             <string>AppIcon</string>
             <key>CFBundlePackageType</key>
@@ -144,7 +147,9 @@ jobs:
             <string>11.0</string>
           </dict>
           </plist>
-          PLIST
+          PLISTEOF
+          sed -i '' "s|__VERSION__|${VERSION}|g" "${APP}/Contents/Info.plist"
+          sed -i '' "s|__BINARY__|${{ env.BINARY_NAME }}|g" "${APP}/Contents/Info.plist"
 
           # Ad-hoc codesign so Gatekeeper doesn't flag the app as "damaged"
           codesign --force --deep --sign - "${APP}"
