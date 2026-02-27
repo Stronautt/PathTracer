@@ -7,6 +7,7 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use glam::Vec3;
 
+use crate::constants::resolve_data_path;
 use crate::scene::material::Material;
 use crate::scene::shape::{Shape, ShapeType};
 
@@ -225,6 +226,11 @@ fn resolve_texture_path(obj_dir: Option<&Path>, tex_path: &str) -> String {
         if resolved.exists() {
             return resolved.to_string_lossy().into_owned();
         }
+    }
+    // Try next to the executable / inside bundle (installed apps).
+    let data = resolve_data_path(tex_path);
+    if data.exists() {
+        return data.to_string_lossy().into_owned();
     }
     // Return as-is; the texture loader will report the error.
     tex_path.to_string()

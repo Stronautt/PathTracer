@@ -9,7 +9,7 @@ use crate::constants::DRAG_THRESHOLD_PX;
 use crate::input::handler;
 use crate::scene::shape::ShapeType;
 
-use super::state::AppState;
+use super::state::{AppState, FileDialogResult};
 
 /// Compute the effective center of a shape for drag purposes.
 /// For triangles, uses the centroid of v0/v1/v2; for others, uses `position`.
@@ -88,6 +88,28 @@ pub fn handle_window_event(state: &mut AppState, event_loop: &ActiveEventLoop, e
             return;
         }
         if !egui_wants_kb {
+            if let WindowEvent::KeyboardInput {
+                event: ref key_event,
+                ..
+            } = event
+                && key_event.physical_key == PhysicalKey::Code(KeyCode::F12)
+                && key_event.state == ElementState::Pressed
+            {
+                let tx = state.file_dialog_tx.clone();
+                let default_name = crate::io::screenshot::default_screenshot_path()
+                    .to_string_lossy()
+                    .to_string();
+                std::thread::spawn(move || {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("PNG image", &["png"])
+                        .set_file_name(&default_name)
+                        .save_file()
+                    {
+                        let _ = tx.send(FileDialogResult::Screenshot(path));
+                    }
+                });
+            }
+
             let was_mouse_look = state.controller.mouse_look_key;
             handler::handle_window_event(&event, &mut state.controller);
             if state.controller.mouse_look_key != was_mouse_look {

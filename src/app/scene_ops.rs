@@ -34,6 +34,7 @@ impl AppState {
                 }
 
                 self.ui_state.selected_shape = None;
+                self.ui_state.paused = false;
                 self.rebuild_scene_buffers_with_textures();
                 self.accumulator.reset();
                 log::info!("Opened scene: {}", path.display());
@@ -89,6 +90,7 @@ impl AppState {
         }
 
         self.shapes.push(shape);
+        self.ui_state.paused = false;
         self.rebuild_scene_buffers();
         self.accumulator.reset();
         log::info!("Added {:?} shape", shape_type);
@@ -142,6 +144,7 @@ impl AppState {
                         }
                     }
                 }
+                self.ui_state.paused = false;
                 self.rebuild_scene_buffers_with_textures();
                 self.accumulator.reset();
                 log::info!("Imported {} shapes from {}", count, path.display());
@@ -166,6 +169,7 @@ impl AppState {
             Ok(triangles) => {
                 let count = triangles.len();
                 self.shapes.extend(triangles);
+                self.ui_state.paused = false;
                 self.rebuild_scene_buffers_with_textures();
                 self.accumulator.reset();
                 log::info!("Imported {} triangles from {}", count, path.display());

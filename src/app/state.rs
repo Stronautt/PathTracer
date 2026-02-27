@@ -32,6 +32,7 @@ pub enum FileDialogResult {
     OpenScene(PathBuf),
     ImportScene(PathBuf),
     ImportModel(PathBuf),
+    Screenshot(PathBuf),
 }
 
 pub struct AppState {
@@ -261,6 +262,7 @@ impl AppState {
             egui_wgpu::Renderer::new(&gpu.device, gpu.surface_format(), None, 1, false);
 
         let mut ui_state = ui::UiState {
+            paused: shapes.is_empty(),
             example_scenes: crate::constants::discover_example_scenes(),
             ..Default::default()
         };

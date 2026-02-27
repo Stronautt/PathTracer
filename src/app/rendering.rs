@@ -1,6 +1,7 @@
 // Copyright (C) Pavlo Hrytsenko <pashagricenko@gmail.com>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+use std::path::Path;
 use std::time::Instant;
 
 use crate::gpu::buffers;
@@ -269,16 +270,34 @@ impl AppState {
                 }
             });
         }
+        if ui_actions.open_screenshot_dialog {
+            let tx = self.file_dialog_tx.clone();
+            let default_name = crate::io::screenshot::default_screenshot_path()
+                .to_string_lossy()
+                .to_string();
+            std::thread::spawn(move || {
+                if let Some(path) = rfd::FileDialog::new()
+                    .add_filter("PNG image", &["png"])
+                    .set_file_name(&default_name)
+                    .save_file()
+                {
+                    let _ = tx.send(FileDialogResult::Screenshot(path));
+                }
+            });
+        }
         // Poll for completed file dialog results (non-blocking).
         while let Ok(result) = self.file_dialog_rx.try_recv() {
             match result {
                 FileDialogResult::OpenScene(path) => self.open_scene(&path),
                 FileDialogResult::ImportScene(path) => self.import_scene(&path),
                 FileDialogResult::ImportModel(path) => self.import_model(&path),
+                FileDialogResult::Screenshot(mut path) => {
+                    if path.extension().is_none() {
+                        path.set_extension("png");
+                    }
+                    self.take_screenshot(&path);
+                }
             }
-        }
-        if let Some(path) = ui_actions.screenshot_path {
-            self.take_screenshot(&path);
         }
     }
 
@@ -292,7 +311,7 @@ impl AppState {
         self.camera.fractal_march_steps = self.ui_state.fractal_march_steps;
     }
 
-    pub fn take_screenshot(&self, path: &str) {
+    pub fn take_screenshot(&self, path: &Path) {
         let width = self.gpu.width();
         let height = self.gpu.height();
         let bytes_per_row_unpadded = width * 4;
@@ -356,12 +375,9 @@ impl AppState {
             drop(data);
             staging_buffer.unmap();
 
-            if let Err(e) = crate::io::screenshot::save_screenshot(
-                &pixels,
-                width,
-                height,
-                std::path::Path::new(path),
-            ) {
+            if let Err(e) =
+                crate::io::screenshot::save_screenshot(&pixels, width, height, path)
+            {
                 log::error!("Screenshot failed: {e:#}");
             }
         } else {

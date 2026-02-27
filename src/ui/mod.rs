@@ -28,7 +28,7 @@ impl Pointer for egui::Response {
 
 #[derive(Default)]
 pub struct UiActions {
-    pub screenshot_path: Option<String>,
+    pub open_screenshot_dialog: bool,
     pub save_requested: bool,
     pub paused: bool,
     pub exposure_changed: Option<f32>,
@@ -66,8 +66,6 @@ pub struct UiState {
     pub save_filename: String,
     pub confirm_delete_shape: Option<usize>,
     pub confirm_overwrite_save: bool,
-    pub screenshot_dialog_open: bool,
-    pub screenshot_filename: String,
     pub firefly_clamp: f32,
     pub skybox_color: [f32; 3],
     pub skybox_brightness: f32,
@@ -111,8 +109,6 @@ impl Default for UiState {
             save_filename: "scene_saved.yaml".to_string(),
             confirm_delete_shape: None,
             confirm_overwrite_save: false,
-            screenshot_dialog_open: false,
-            screenshot_filename: String::new(),
             firefly_clamp: DEFAULT_FIREFLY_CLAMP,
             skybox_color: DEFAULT_SKYBOX_COLOR,
             skybox_brightness: DEFAULT_SKYBOX_BRIGHTNESS,
@@ -324,56 +320,23 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
         }
     }
 
-    // --- Screenshot dialog modal ---
-    if state.screenshot_dialog_open {
-        let mut confirmed = false;
-        let mut cancelled = false;
-        egui::Window::new("Screenshot")
+    // --- Shortcuts dialog ---
+    if state.shortcuts_dialog_open {
+        egui::Window::new("Keyboard Shortcuts")
+            .title_bar(false)
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                ui.label("File name:");
-                let response = ui.text_edit_singleline(&mut state.screenshot_filename);
-                if response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                    confirmed = true;
-                }
-                ui.add_space(10.0);
-                ui.vertical_centered(|ui| {
-                    ui.horizontal(|ui| {
-                        if ui
-                            .add(
-                                egui::Button::new(RichText::new("Save").color(Color32::WHITE))
-                                    .fill(Color32::from_rgb(60, 120, 200)),
-                            )
-                            .pointer()
-                            .clicked()
-                        {
-                            confirmed = true;
-                        }
-                        if ui.button("Cancel").pointer().clicked() {
-                            cancelled = true;
+                ui.horizontal(|ui| {
+                    ui.strong("Keyboard Shortcuts");
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("✕").pointer().clicked() {
+                            state.shortcuts_dialog_open = false;
                         }
                     });
                 });
-            });
-        if confirmed && !state.screenshot_filename.trim().is_empty() {
-            actions.screenshot_path = Some(state.screenshot_filename.clone());
-            state.screenshot_dialog_open = false;
-        } else if cancelled {
-            state.screenshot_dialog_open = false;
-        }
-    }
-
-    // --- Shortcuts dialog ---
-    if state.shortcuts_dialog_open {
-        let mut open = true;
-        egui::Window::new("Keyboard Shortcuts")
-            .open(&mut open)
-            .collapsible(false)
-            .resizable(false)
-            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
-            .show(ctx, |ui| {
+                ui.separator();
                 egui::Grid::new("shortcuts_grid")
                     .num_columns(2)
                     .spacing([24.0, 4.0])
@@ -388,6 +351,7 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
                             ("Right Mouse", "Capture mouse"),
                             ("Left Mouse", "Select / drag shape"),
                             ("Numpad + / -", "Camera speed"),
+                            ("F12", "Screenshot"),
                             ("Escape", "Release mouse / Exit"),
                         ];
                         for (key, desc) in shortcuts {
@@ -397,20 +361,25 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
                         }
                     });
             });
-        if !open {
-            state.shortcuts_dialog_open = false;
-        }
     }
 
     // --- About dialog ---
     if state.about_dialog_open {
-        let mut open = true;
         egui::Window::new("About")
-            .open(&mut open)
+            .title_bar(false)
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.strong("About");
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button("✕").pointer().clicked() {
+                            state.about_dialog_open = false;
+                        }
+                    });
+                });
+                ui.separator();
                 ui.heading("PathTracer");
                 ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
                 ui.add_space(6.0);
@@ -424,9 +393,6 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
                         .italics(),
                 );
             });
-        if !open {
-            state.about_dialog_open = false;
-        }
     }
 
     actions

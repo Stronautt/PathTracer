@@ -70,10 +70,7 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
                     ui.close_menu();
                 }
                 if ui.button("📷 Screenshot").pointer().clicked() {
-                    state.screenshot_filename = crate::io::screenshot::default_screenshot_path()
-                        .to_string_lossy()
-                        .to_string();
-                    state.screenshot_dialog_open = true;
+                    actions.open_screenshot_dialog = true;
                     ui.close_menu();
                 }
 
