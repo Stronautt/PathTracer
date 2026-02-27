@@ -4,7 +4,12 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Quat, Vec3};
 
-use crate::constants::{DEFAULT_CAMERA_POSITION, DEFAULT_EXPOSURE, DEFAULT_FOV};
+use crate::constants::{
+    DEFAULT_CAMERA_POSITION, DEFAULT_EXPOSURE, DEFAULT_FIREFLY_CLAMP, DEFAULT_FOV,
+    DEFAULT_FRACTAL_MARCH_STEPS, DEFAULT_MAX_BOUNCES, DEFAULT_SKYBOX_BRIGHTNESS,
+    DEFAULT_SKYBOX_COLOR, DEFAULT_TONE_MAPPER,
+};
+use crate::scene::scene::CameraConfig;
 
 pub struct Camera {
     pub position: Vec3,
@@ -12,6 +17,12 @@ pub struct Camera {
     pub pitch: f32, // degrees
     pub fov: f32,   // degrees
     pub exposure: f32,
+    pub max_bounces: u32,
+    pub tone_mapper: u32,
+    pub fractal_march_steps: u32,
+    pub firefly_clamp: f32,
+    pub skybox_color: [f32; 3],
+    pub skybox_brightness: f32,
 }
 
 impl Camera {
@@ -22,7 +33,48 @@ impl Camera {
             pitch: rotation[0],
             fov,
             exposure,
+            max_bounces: DEFAULT_MAX_BOUNCES,
+            tone_mapper: DEFAULT_TONE_MAPPER,
+            fractal_march_steps: DEFAULT_FRACTAL_MARCH_STEPS,
+            firefly_clamp: DEFAULT_FIREFLY_CLAMP,
+            skybox_color: DEFAULT_SKYBOX_COLOR,
+            skybox_brightness: DEFAULT_SKYBOX_BRIGHTNESS,
         }
+    }
+
+    /// Construct a camera fully from a scene's camera config (position, orientation, and all
+    /// render settings). Prefer this over `new()` followed by manual field assignments.
+    pub fn from_config(cfg: &CameraConfig) -> Self {
+        let mut cam = Self::new(cfg.position.into(), cfg.rotation, cfg.fov, cfg.exposure);
+        cam.apply_render_settings(cfg);
+        cam
+    }
+
+    /// Serialize the camera back into a `CameraConfig` for scene saving.
+    pub fn to_config(&self) -> CameraConfig {
+        CameraConfig {
+            position: self.position.into(),
+            rotation: [self.pitch, self.yaw, 0.0],
+            fov: self.fov,
+            exposure: self.exposure,
+            max_bounces: self.max_bounces,
+            firefly_clamp: self.firefly_clamp,
+            skybox_color: self.skybox_color,
+            skybox_brightness: self.skybox_brightness,
+            tone_mapper: self.tone_mapper,
+            fractal_march_steps: self.fractal_march_steps,
+        }
+    }
+
+    /// Copy the render settings (everything except position/orientation/fov/exposure) from a
+    /// `CameraConfig` into this camera.
+    pub fn apply_render_settings(&mut self, cfg: &CameraConfig) {
+        self.max_bounces = cfg.max_bounces;
+        self.firefly_clamp = cfg.firefly_clamp;
+        self.skybox_color = cfg.skybox_color;
+        self.skybox_brightness = cfg.skybox_brightness;
+        self.tone_mapper = cfg.tone_mapper;
+        self.fractal_march_steps = cfg.fractal_march_steps;
     }
 
     pub fn orientation(&self) -> Quat {
@@ -65,7 +117,13 @@ impl Camera {
             width,
             height,
             sample_count,
-            _pad: 0,
+            max_bounces: self.max_bounces,
+            tone_mapper: self.tone_mapper,
+            fractal_march_steps: self.fractal_march_steps,
+            firefly_clamp: self.firefly_clamp,
+            skybox_brightness: self.skybox_brightness,
+            skybox_color: self.skybox_color,
+            _pad2: 0.0,
         }
     }
 }
@@ -78,6 +136,12 @@ impl Default for Camera {
             pitch: 0.0,
             fov: DEFAULT_FOV,
             exposure: DEFAULT_EXPOSURE,
+            max_bounces: DEFAULT_MAX_BOUNCES,
+            tone_mapper: DEFAULT_TONE_MAPPER,
+            fractal_march_steps: DEFAULT_FRACTAL_MARCH_STEPS,
+            firefly_clamp: DEFAULT_FIREFLY_CLAMP,
+            skybox_color: DEFAULT_SKYBOX_COLOR,
+            skybox_brightness: DEFAULT_SKYBOX_BRIGHTNESS,
         }
     }
 }
@@ -97,5 +161,11 @@ pub struct GpuCamera {
     pub width: u32,
     pub height: u32,
     pub sample_count: u32,
-    pub _pad: u32,
+    pub max_bounces: u32,
+    pub tone_mapper: u32,
+    pub fractal_march_steps: u32,
+    pub firefly_clamp: f32,
+    pub skybox_brightness: f32,
+    pub skybox_color: [f32; 3],
+    pub _pad2: f32,
 }

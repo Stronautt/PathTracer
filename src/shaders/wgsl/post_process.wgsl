@@ -6,9 +6,13 @@ struct PostParams {
     width: u32,
     height: u32,
     effect_count: u32,
-    _pad: u32,
+    oil_radius: u32,
     effects_0_3: vec4u,
     effects_4_7: vec4u,
+    comic_levels: u32,
+    _pad2: u32,
+    _pad3: u32,
+    _pad4: u32,
 }
 
 @group(0) @binding(0) var<uniform> params: PostParams;
@@ -132,7 +136,7 @@ fn apply_fxaa(pixel: vec2u) -> vec3f {
 
 // Oil painting effect with fixed boundary logic.
 fn apply_oil_painting(pixel: vec2u) -> vec3f {
-    let radius = 3;
+    let radius = i32(params.oil_radius);
     var total_color = vec3f(0.0);
     var count = 0;
 
@@ -155,7 +159,7 @@ fn apply_oil_painting(pixel: vec2u) -> vec3f {
 
 // Comic/cel-shading effect.
 fn apply_comic(pixel: vec2u, color: vec3f) -> vec3f {
-    let levels = 4.0;
+    let levels = f32(params.comic_levels);
     let quantized = floor(color * levels + 0.5) / levels;
 
     let ip = vec2i(pixel);

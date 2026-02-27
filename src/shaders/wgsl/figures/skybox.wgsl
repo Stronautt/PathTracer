@@ -22,8 +22,8 @@ fn sample_skybox(direction: vec3f) -> vec3f {
     // Fallback: procedural sky gradient
     let t = 0.5 * (direction.y + 1.0);
     let sky_bottom = vec3f(1.0, 1.0, 1.0);
-    let sky_top = vec3f(0.5, 0.7, 1.0);
-    return mix(sky_bottom, sky_top, t) * 0.3;
+    let sky_top = camera.skybox_color;
+    return mix(sky_bottom, sky_top, t) * camera.skybox_brightness;
 }
 
 // Skybox intersection for compatibility with BVH (used when skybox is a figure).

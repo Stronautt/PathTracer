@@ -3,12 +3,11 @@
 
 use std::path::Path;
 
+use crate::camera::camera::Camera;
 use crate::constants::MODEL_AUTO_SCALE_TARGET;
 use crate::scene::material::Material;
-use crate::scene::scene::{CameraConfig, Scene};
+use crate::scene::scene::Scene;
 use crate::scene::shape::{Shape, ShapeType};
-
-use crate::camera::camera::Camera;
 
 use super::state::AppState;
 
@@ -16,13 +15,8 @@ impl AppState {
     pub fn open_scene(&mut self, path: &Path) {
         match crate::scene::loader::load_scene(path) {
             Ok(scene) => {
-                self.camera = Camera::new(
-                    scene.camera.position.into(),
-                    scene.camera.rotation,
-                    scene.camera.fov,
-                    scene.camera.exposure,
-                );
-                self.ui_state.exposure = self.camera.exposure;
+                self.camera = Camera::from_config(&scene.camera);
+                self.ui_state.sync_from_camera(&self.camera);
                 self.shapes = scene.shapes;
 
                 for model_ref in &scene.models {
@@ -118,12 +112,7 @@ impl AppState {
 
     pub fn save_scene(&self, filename: &str) {
         let scene = Scene {
-            camera: CameraConfig {
-                position: self.camera.position.into(),
-                rotation: [self.camera.pitch, self.camera.yaw, 0.0],
-                fov: self.camera.fov,
-                exposure: self.camera.exposure,
-            },
+            camera: self.camera.to_config(),
             shapes: self.shapes.clone(),
             models: vec![],
         };

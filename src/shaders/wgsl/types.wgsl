@@ -12,7 +12,13 @@ struct Camera {
     width: u32,
     height: u32,
     sample_count: u32,
-    _pad: u32,
+    max_bounces: u32,
+    tone_mapper: u32,
+    fractal_march_steps: u32,
+    firefly_clamp: f32,
+    skybox_brightness: f32,
+    skybox_color: vec3f,
+    _pad2: f32,
 }
 
 struct Figure {

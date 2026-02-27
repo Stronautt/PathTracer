@@ -23,7 +23,6 @@
 @group(1) @binding(4) var<storage, read> light_indices: array<u32>;
 @group(1) @binding(7) var<storage, read> infinite_indices: array<u32>;
 
-const MAX_BOUNCES: u32 = 16u;
 const MIN_BOUNCES_RR: u32 = 3u;
 
 @compute @workgroup_size(8, 8)
@@ -61,7 +60,7 @@ fn trace_path(initial_ray: Ray) -> vec3f {
 
     let num_lights = arrayLength(&light_indices);
 
-    for (var bounce = 0u; bounce < MAX_BOUNCES; bounce++) {
+    for (var bounce = 0u; bounce < camera.max_bounces; bounce++) {
         let hit = trace_bvh(ray);
         if !hit.hit {
             // Sky contribution
@@ -174,8 +173,8 @@ fn trace_path(initial_ray: Ray) -> vec3f {
 
         // Firefly clamping
         let lum = luminance(throughput);
-        if lum > 100.0 {
-            throughput *= 100.0 / lum;
+        if lum > camera.firefly_clamp {
+            throughput *= camera.firefly_clamp / lum;
         }
     }
 

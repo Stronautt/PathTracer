@@ -137,9 +137,13 @@ pub fn handle_window_event(state: &mut AppState, event_loop: &ActiveEventLoop, e
                     state.gpu.width(),
                     state.gpu.height(),
                 );
-                if let Some((idx, t, hit_point)) =
-                    crate::picking::pick(origin, dir, &state.bvh, &state.shapes, &state.infinite_indices)
-                {
+                if let Some((idx, t, hit_point)) = crate::picking::pick(
+                    origin,
+                    dir,
+                    &state.bvh,
+                    &state.shapes,
+                    &state.infinite_indices,
+                ) {
                     let shape_pos = shape_centroid(&state.shapes[idx]);
                     state.drag_shape = Some(idx);
                     state.drag_depth = t;

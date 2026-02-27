@@ -54,7 +54,7 @@ fn intersect_mandelbulb(ray: Ray, fig: Figure) -> HitRecord {
     let max_t = -b + sqrt(disc);
     var prev_d = 0.0;
 
-    for (var i = 0; i < 256; i++) {
+    for (var i = 0u; i < camera.fractal_march_steps; i++) {
         let p = ray.origin + ray.direction * t - fig.position;
         let scaled_p = p / fig.radius;
         let d = sdf_mandelbulb(scaled_p, power, max_iter) * fig.radius;

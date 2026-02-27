@@ -4,8 +4,43 @@
 use egui::Context;
 
 use super::{Pointer, UiActions, UiState, shape_label};
+use crate::constants::{EXAMPLE_SCENES_DIR, resolve_data_path};
 use crate::render::post_process::PostEffect;
 use crate::scene::shape::{Shape, ShapeType};
+
+/// Render a labelled slider and set `*changed = true` when the value is modified.
+fn labeled_slider<T: egui::emath::Numeric>(
+    ui: &mut egui::Ui,
+    label: &str,
+    value: &mut T,
+    range: std::ops::RangeInclusive<T>,
+    changed: &mut bool,
+) {
+    ui.horizontal(|ui| {
+        ui.label(label);
+        if ui.add(egui::Slider::new(value, range)).pointer().changed() {
+            *changed = true;
+        }
+    });
+}
+
+/// Like `labeled_slider` but indented by `indent` points — used for effect sub-options.
+fn indented_slider<T: egui::emath::Numeric>(
+    ui: &mut egui::Ui,
+    indent: f32,
+    label: &str,
+    value: &mut T,
+    range: std::ops::RangeInclusive<T>,
+    changed: &mut bool,
+) {
+    ui.horizontal(|ui| {
+        ui.add_space(indent);
+        ui.label(label);
+        if ui.add(egui::Slider::new(value, range)).pointer().changed() {
+            *changed = true;
+        }
+    });
+}
 
 pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], actions: &mut UiActions) {
     egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
@@ -52,6 +87,28 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
                     if ui.button("3D Model (.obj)").pointer().clicked() {
                         actions.open_import_model_dialog = true;
                         ui.close_menu();
+                    }
+                })
+                .response
+                .pointer();
+
+                ui.menu_button("📁 Examples", |ui| {
+                    if state.example_scenes.is_empty() {
+                        ui.disable();
+                        ui.label("No examples found");
+                    } else {
+                        egui::ScrollArea::vertical()
+                            .max_height(400.0)
+                            .show(ui, |ui| {
+                                for name in &state.example_scenes {
+                                    if ui.button(name).pointer().clicked() {
+                                        let full = resolve_data_path(EXAMPLE_SCENES_DIR)
+                                            .join(format!("{name}.yaml"));
+                                        actions.open_example_scene = Some(full);
+                                        ui.close_menu();
+                                    }
+                                }
+                            });
                     }
                 })
                 .response
@@ -111,6 +168,78 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
                     }
                 });
 
+                ui.horizontal(|ui| {
+                    ui.label("Max Bounces:");
+                    if ui
+                        .add(egui::Slider::new(&mut state.max_bounces, 1..=32))
+                        .pointer()
+                        .changed()
+                    {
+                        actions.max_bounces_changed = Some(state.max_bounces);
+                    }
+                });
+
+                ui.horizontal(|ui| {
+                    ui.label("Firefly Clamp:");
+                    if ui
+                        .add(
+                            egui::Slider::new(&mut state.firefly_clamp, 1.0..=1000.0)
+                                .logarithmic(true),
+                        )
+                        .pointer()
+                        .changed()
+                    {
+                        actions.render_settings_changed = true;
+                    }
+                });
+
+                labeled_slider(
+                    ui,
+                    "Fractal Steps:",
+                    &mut state.fractal_march_steps,
+                    32..=512,
+                    &mut actions.render_settings_changed,
+                );
+
+                ui.horizontal(|ui| {
+                    ui.label("Tone Mapper:");
+                    let labels = ["ACES", "Reinhard", "None"];
+                    let current = labels.get(state.tone_mapper as usize).unwrap_or(&"ACES");
+                    egui::ComboBox::from_id_salt("tone_mapper")
+                        .selected_text(*current)
+                        .show_ui(ui, |ui| {
+                            for (i, label) in labels.iter().enumerate() {
+                                if ui
+                                    .selectable_value(&mut state.tone_mapper, i as u32, *label)
+                                    .pointer()
+                                    .changed()
+                                {
+                                    actions.render_settings_changed = true;
+                                }
+                            }
+                        });
+                });
+
+                ui.separator();
+                ui.strong("Skybox");
+
+                ui.horizontal(|ui| {
+                    ui.label("Color:");
+                    let mut color = state.skybox_color;
+                    if ui.color_edit_button_rgb(&mut color).pointer().changed() {
+                        state.skybox_color = color;
+                        actions.render_settings_changed = true;
+                    }
+                });
+
+                labeled_slider(
+                    ui,
+                    "Brightness:",
+                    &mut state.skybox_brightness,
+                    0.0..=2.0,
+                    &mut actions.render_settings_changed,
+                );
+
                 ui.separator();
 
                 ui.strong("Effects");
@@ -132,6 +261,26 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
                                     state.active_effects.retain(|&e| e != effect);
                                 }
                                 effects_changed = true;
+                            }
+                            if checked && effect == PostEffect::OilPainting {
+                                indented_slider(
+                                    ui,
+                                    20.0,
+                                    "Radius:",
+                                    &mut state.oil_radius,
+                                    1..=8,
+                                    &mut actions.post_effect_params_changed,
+                                );
+                            }
+                            if checked && effect == PostEffect::Comic {
+                                indented_slider(
+                                    ui,
+                                    20.0,
+                                    "Levels:",
+                                    &mut state.comic_levels,
+                                    2..=16,
+                                    &mut actions.post_effect_params_changed,
+                                );
                             }
                         }
 
@@ -169,6 +318,19 @@ pub fn draw_toolbar(ctx: &Context, state: &mut UiState, shapes: &[Shape], action
                     });
                 if effects_changed {
                     actions.effects_changed = Some(state.active_effects.clone());
+                }
+            })
+            .response
+            .pointer();
+
+            ui.menu_button("? Help", |ui| {
+                if ui.button("Shortcuts").pointer().clicked() {
+                    state.shortcuts_dialog_open = true;
+                    ui.close_menu();
+                }
+                if ui.button("About").pointer().clicked() {
+                    state.about_dialog_open = true;
+                    ui.close_menu();
                 }
             })
             .response

@@ -116,12 +116,7 @@ impl AppState {
             Scene::empty()
         };
 
-        let camera = Camera::new(
-            scene.camera.position.into(),
-            scene.camera.rotation,
-            scene.camera.fov,
-            scene.camera.exposure,
-        );
+        let camera = Camera::from_config(&scene.camera);
 
         let mut shapes = scene.shapes.clone();
         for model_ref in &scene.models {
@@ -185,7 +180,8 @@ impl AppState {
         let tex_infos_buffer =
             buffers::create_storage_buffer(&gpu.device, &texture_atlas.infos, "tex_infos", true);
 
-        let post_params = Self::build_post_params(width, height, &[]);
+        let post_params =
+            Self::build_post_params(width, height, &[], DEFAULT_OIL_RADIUS, DEFAULT_COMIC_LEVELS);
         let post_params_buffer =
             buffers::create_uniform_buffer(&gpu.device, &post_params, "post_params");
 
@@ -264,10 +260,11 @@ impl AppState {
         let egui_renderer =
             egui_wgpu::Renderer::new(&gpu.device, gpu.surface_format(), None, 1, false);
 
-        let ui_state = ui::UiState {
-            exposure: camera.exposure,
+        let mut ui_state = ui::UiState {
+            example_scenes: crate::constants::discover_example_scenes(),
             ..Default::default()
         };
+        ui_state.sync_from_camera(&camera);
 
         let (file_dialog_tx, file_dialog_rx) = mpsc::channel();
 
@@ -450,15 +447,19 @@ impl AppState {
         width: u32,
         height: u32,
         effects: &[PostEffect],
+        oil_radius: u32,
+        comic_levels: u32,
     ) -> [u32; POST_PARAMS_SIZE] {
         let mut params = [0u32; POST_PARAMS_SIZE];
         params[0] = width;
         params[1] = height;
         let count = effects.len().min(POST_PARAMS_MAX_EFFECTS);
         params[2] = count as u32;
+        params[3] = oil_radius;
         for (i, effect) in effects.iter().take(POST_PARAMS_MAX_EFFECTS).enumerate() {
             params[4 + i] = effect.as_u32();
         }
+        params[12] = comic_levels;
         params
     }
 
@@ -521,7 +522,13 @@ impl AppState {
             &self.output_view,
         );
 
-        let post_params = Self::build_post_params(width, height, &self.active_effects);
+        let post_params = Self::build_post_params(
+            width,
+            height,
+            &self.active_effects,
+            self.ui_state.oil_radius,
+            self.ui_state.comic_levels,
+        );
         buffers::update_uniform_buffer(&self.gpu.queue, &self.post_params_buffer, &post_params);
     }
 
@@ -557,13 +564,17 @@ impl AppState {
         (bvh, infinite_indices)
     }
 
-    fn compute_scene_gpu_data(
-        &self,
-    ) -> (Vec<GpuShape>, Vec<GpuMaterial>, Vec<u32>, Bvh, Vec<u32>) {
+    fn compute_scene_gpu_data(&self) -> (Vec<GpuShape>, Vec<GpuMaterial>, Vec<u32>, Bvh, Vec<u32>) {
         let (gpu_shapes, gpu_materials, light_indices) =
             Self::build_gpu_data(&self.shapes, &self.tex_path_cache);
         let (bvh, infinite_indices) = Self::build_bvh(&self.shapes);
-        (gpu_shapes, gpu_materials, light_indices, bvh, infinite_indices)
+        (
+            gpu_shapes,
+            gpu_materials,
+            light_indices,
+            bvh,
+            infinite_indices,
+        )
     }
 
     /// Write updated scene data to existing GPU buffers in-place when they fit.

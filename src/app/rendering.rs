@@ -186,12 +186,26 @@ impl AppState {
             self.camera.exposure = exp;
             self.accumulator.reset();
         }
+        if let Some(bounces) = ui_actions.max_bounces_changed {
+            self.camera.max_bounces = bounces;
+            self.accumulator.reset();
+        }
+        if ui_actions.render_settings_changed {
+            self.sync_render_settings_to_camera();
+            self.accumulator.reset();
+        }
+        let mut rebuild_post = ui_actions.post_effect_params_changed;
         if let Some(effects) = ui_actions.effects_changed {
             self.active_effects = effects;
+            rebuild_post = true;
+        }
+        if rebuild_post {
             let params = AppState::build_post_params(
                 self.gpu.width(),
                 self.gpu.height(),
                 &self.active_effects,
+                self.ui_state.oil_radius,
+                self.ui_state.comic_levels,
             );
             buffers::update_uniform_buffer(&self.gpu.queue, &self.post_params_buffer, &params);
         }
@@ -211,6 +225,9 @@ impl AppState {
         }
         if ui_actions.save_requested {
             self.save_scene(&self.ui_state.save_filename.clone());
+        }
+        if let Some(path) = ui_actions.open_example_scene {
+            self.open_scene(&path);
         }
         if let Some(path) = ui_actions.import_scene_path {
             self.import_scene(&path);
@@ -263,6 +280,16 @@ impl AppState {
         if let Some(path) = ui_actions.screenshot_path {
             self.take_screenshot(&path);
         }
+    }
+
+    /// Copy the render settings that are mutated via Settings sliders (but not
+    /// through dedicated actions) from `ui_state` into the camera uniform.
+    fn sync_render_settings_to_camera(&mut self) {
+        self.camera.firefly_clamp = self.ui_state.firefly_clamp;
+        self.camera.skybox_color = self.ui_state.skybox_color;
+        self.camera.skybox_brightness = self.ui_state.skybox_brightness;
+        self.camera.tone_mapper = self.ui_state.tone_mapper;
+        self.camera.fractal_march_steps = self.ui_state.fractal_march_steps;
     }
 
     pub fn take_screenshot(&self, path: &str) {

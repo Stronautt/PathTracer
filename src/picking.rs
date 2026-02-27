@@ -88,7 +88,14 @@ fn ray_cube(origin: Vec3, dir: Vec3, center: Vec3, half: f32) -> Option<f32> {
     }
 }
 
-fn ray_cylinder(origin: Vec3, dir: Vec3, center: Vec3, axis: Vec3, radius: f32, height: f32) -> Option<f32> {
+fn ray_cylinder(
+    origin: Vec3,
+    dir: Vec3,
+    center: Vec3,
+    axis: Vec3,
+    radius: f32,
+    height: f32,
+) -> Option<f32> {
     let oc = origin - center;
     let d_along = dir.dot(axis);
     let oc_along = oc.dot(axis);
@@ -133,7 +140,14 @@ fn ray_cylinder(origin: Vec3, dir: Vec3, center: Vec3, axis: Vec3, radius: f32, 
     best
 }
 
-fn ray_cone(origin: Vec3, dir: Vec3, center: Vec3, axis: Vec3, tan_sq: f32, height: f32) -> Option<f32> {
+fn ray_cone(
+    origin: Vec3,
+    dir: Vec3,
+    center: Vec3,
+    axis: Vec3,
+    tan_sq: f32,
+    height: f32,
+) -> Option<f32> {
     // Base disc at `center`, apex at `center + axis * height`. `tan_sq` is tan²(half-angle).
     let apex = center + axis * height;
     let oc = origin - apex;

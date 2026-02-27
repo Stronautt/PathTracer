@@ -8,6 +8,10 @@ use egui::{Color32, Context, RichText};
 
 use std::path::PathBuf;
 
+use crate::constants::{
+    DEFAULT_COMIC_LEVELS, DEFAULT_FIREFLY_CLAMP, DEFAULT_FRACTAL_MARCH_STEPS, DEFAULT_MAX_BOUNCES,
+    DEFAULT_OIL_RADIUS, DEFAULT_SKYBOX_BRIGHTNESS, DEFAULT_SKYBOX_COLOR, DEFAULT_TONE_MAPPER,
+};
 use crate::render::post_process::PostEffect;
 use crate::scene::shape::{Shape, ShapeType};
 
@@ -28,6 +32,7 @@ pub struct UiActions {
     pub save_requested: bool,
     pub paused: bool,
     pub exposure_changed: Option<f32>,
+    pub max_bounces_changed: Option<u32>,
     pub effects_changed: Option<Vec<PostEffect>>,
     pub shape_to_add: Option<ShapeType>,
     pub selected_shape: Option<usize>,
@@ -38,16 +43,21 @@ pub struct UiActions {
     pub import_model_path: Option<PathBuf>,
     /// Scale ratio to apply to the selected model group (new_scale / old_scale).
     pub model_scale_ratio: Option<f32>,
+    pub render_settings_changed: bool,
+    pub post_effect_params_changed: bool,
     /// Signal the app to open a file dialog on a background thread.
     pub open_scene_dialog: bool,
     pub open_import_scene_dialog: bool,
     pub open_import_model_dialog: bool,
+    /// Open a bundled example scene by its resolved path.
+    pub open_example_scene: Option<PathBuf>,
 }
 
 pub struct UiState {
     pub paused: bool,
     pub active_effects: Vec<PostEffect>,
     pub exposure: f32,
+    pub max_bounces: u32,
     pub selected_shape: Option<usize>,
     pub fps: f32,
     pub sample_count: u32,
@@ -58,8 +68,32 @@ pub struct UiState {
     pub confirm_overwrite_save: bool,
     pub screenshot_dialog_open: bool,
     pub screenshot_filename: String,
+    pub firefly_clamp: f32,
+    pub skybox_color: [f32; 3],
+    pub skybox_brightness: f32,
+    pub tone_mapper: u32,
+    pub fractal_march_steps: u32,
+    pub oil_radius: u32,
+    pub comic_levels: u32,
     /// Current scale for the selected model group (for the scale slider).
     pub model_scale: f32,
+    /// Cached list of example scene stem names.
+    pub example_scenes: Vec<String>,
+    pub shortcuts_dialog_open: bool,
+    pub about_dialog_open: bool,
+}
+
+impl UiState {
+    /// Mirror camera render settings into UI state so sliders stay in sync after a scene load.
+    pub fn sync_from_camera(&mut self, camera: &crate::camera::camera::Camera) {
+        self.exposure = camera.exposure;
+        self.max_bounces = camera.max_bounces;
+        self.firefly_clamp = camera.firefly_clamp;
+        self.skybox_color = camera.skybox_color;
+        self.skybox_brightness = camera.skybox_brightness;
+        self.tone_mapper = camera.tone_mapper;
+        self.fractal_march_steps = camera.fractal_march_steps;
+    }
 }
 
 impl Default for UiState {
@@ -68,6 +102,7 @@ impl Default for UiState {
             paused: false,
             active_effects: Vec::new(),
             exposure: 1.0,
+            max_bounces: DEFAULT_MAX_BOUNCES,
             selected_shape: None,
             fps: 0.0,
             sample_count: 0,
@@ -78,7 +113,17 @@ impl Default for UiState {
             confirm_overwrite_save: false,
             screenshot_dialog_open: false,
             screenshot_filename: String::new(),
+            firefly_clamp: DEFAULT_FIREFLY_CLAMP,
+            skybox_color: DEFAULT_SKYBOX_COLOR,
+            skybox_brightness: DEFAULT_SKYBOX_BRIGHTNESS,
+            tone_mapper: DEFAULT_TONE_MAPPER,
+            fractal_march_steps: DEFAULT_FRACTAL_MARCH_STEPS,
+            oil_radius: DEFAULT_OIL_RADIUS,
+            comic_levels: DEFAULT_COMIC_LEVELS,
             model_scale: 1.0,
+            example_scenes: Vec::new(),
+            shortcuts_dialog_open: false,
+            about_dialog_open: false,
         }
     }
 }
@@ -87,6 +132,37 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
     let mut actions = UiActions::default();
 
     toolbar::draw_toolbar(ctx, state, shapes, &mut actions);
+
+    // --- Welcome screen (shown when the scene is empty) ---
+    if shapes.is_empty() {
+        egui::Area::new(egui::Id::new("welcome_screen"))
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                egui::Frame::popup(ui.style()).show(ui, |ui| {
+                    ui.set_min_width(340.0);
+                    ui.vertical_centered(|ui| {
+                        ui.heading("Welcome to PathTracer");
+                    });
+                    ui.add_space(8.0);
+                    ui.label("Get started:");
+                    ui.add_space(4.0);
+                    egui::Grid::new("welcome_grid")
+                        .num_columns(2)
+                        .spacing([12.0, 6.0])
+                        .show(ui, |ui| {
+                            ui.strong("Scene > Open");
+                            ui.label("Load a scene from disk");
+                            ui.end_row();
+                            ui.strong("Scene > Examples");
+                            ui.label("Browse bundled example scenes");
+                            ui.end_row();
+                            ui.strong("Scene > Add Shape");
+                            ui.label("Create a new primitive");
+                            ui.end_row();
+                        });
+                });
+            });
+    }
 
     if let Some(idx) = state.selected_shape
         && idx < shapes.len()
@@ -286,6 +362,70 @@ pub fn draw_ui(ctx: &Context, state: &mut UiState, shapes: &mut [Shape]) -> UiAc
             state.screenshot_dialog_open = false;
         } else if cancelled {
             state.screenshot_dialog_open = false;
+        }
+    }
+
+    // --- Shortcuts dialog ---
+    if state.shortcuts_dialog_open {
+        let mut open = true;
+        egui::Window::new("Keyboard Shortcuts")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                egui::Grid::new("shortcuts_grid")
+                    .num_columns(2)
+                    .spacing([24.0, 4.0])
+                    .striped(true)
+                    .show(ui, |ui| {
+                        let shortcuts = [
+                            ("W / A / S / D", "Camera movement"),
+                            ("Space", "Move up"),
+                            ("Ctrl", "Move down"),
+                            ("Shift", "Sprint"),
+                            ("M", "Toggle mouse look"),
+                            ("Right Mouse", "Capture mouse"),
+                            ("Left Mouse", "Select / drag shape"),
+                            ("Numpad + / -", "Camera speed"),
+                            ("Escape", "Release mouse / Exit"),
+                        ];
+                        for (key, desc) in shortcuts {
+                            ui.strong(key);
+                            ui.label(desc);
+                            ui.end_row();
+                        }
+                    });
+            });
+        if !open {
+            state.shortcuts_dialog_open = false;
+        }
+    }
+
+    // --- About dialog ---
+    if state.about_dialog_open {
+        let mut open = true;
+        egui::Window::new("About")
+            .open(&mut open)
+            .collapsible(false)
+            .resizable(false)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .show(ctx, |ui| {
+                ui.heading("PathTracer");
+                ui.label(format!("Version {}", env!("CARGO_PKG_VERSION")));
+                ui.add_space(6.0);
+                ui.label("GPU-accelerated 3D PBR path tracer");
+                ui.add_space(6.0);
+                ui.label("Author: Pavlo Hrytsenko");
+                ui.label("License: GPL-3.0-or-later");
+                ui.add_space(6.0);
+                ui.label(
+                    RichText::new("Inspired by the RT project from 42 school (Unit Factory)")
+                        .italics(),
+                );
+            });
+        if !open {
+            state.about_dialog_open = false;
         }
     }
 

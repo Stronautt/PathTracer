@@ -1,6 +1,6 @@
 [package]
 name = "path-tracer"
-version = "2.0.0"
+version = "2.0.3"
 edition = "2024"
 description = "GPU-accelerated PBR path tracer using wgpu/WebGPU"
 license = "MIT"
